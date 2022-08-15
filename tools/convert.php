@@ -111,4 +111,4 @@ for($i = 0; $i < count($arr); $i++)
 //		die();
 }
 
-echo "Converted binary and created output file ".$stem[0].".txt.";
+//echo "Processed .out-file and created ".$stem[0].".txt.";
