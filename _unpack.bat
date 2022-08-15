@@ -1,3 +1,3 @@
 @mode con: cols=160 lines=40
-@python unpack.py
+@python tools\unpack.py
 @pause

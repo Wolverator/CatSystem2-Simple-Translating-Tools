@@ -101,6 +101,7 @@ def press_any_key():
 def create_if_not_exists(_path_to_file_or_dir: str):
     if not os.path.exists(_path_to_file_or_dir):
         os.mkdir(_path_to_file_or_dir)
+        os.chmod(_path_to_file_or_dir, 0o777)
 
 
 def prepare_for_work():
@@ -265,7 +266,7 @@ def sort_resulting_files():
 
     for filename in os.listdir(dir_path_extracted):
         file = dir_path_extracted + filename
-        if file.endswith(".fes"):
+        if file.endswith(".fes") and file.endswith(".kcs"):
             shutil.move(file, dir_path_extracted_scripts + filename)
 
     for filename in os.listdir(dir_path_extracted):
@@ -291,10 +292,9 @@ def remove_temp_files():
             os.remove(dir_path_extracted + file)
     # also remove empty folders
     for pth in os.listdir(dir_path_extracted):
-        if os.path.isdir(pth):
-            with os.scandir(pth) as it:
-                if not any(it):
-                    os.rmdir(pth)
+        with os.scandir(dir_path_extracted + "\\" + pth) as it:
+            if not any(it):
+                os.rmdir(dir_path_extracted + "\\" + pth)
 
 
 def clean_files_from_dir(_dir: str, _filetype: str):
