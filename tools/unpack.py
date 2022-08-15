@@ -69,14 +69,15 @@ After copying all files in this folder press Enter...""",
 
 # other variables
 dir_path = os.path.dirname(os.path.realpath(__file__)).replace("tools", "")
-dir_path_extracted = dir_path + "\\extracted\\"
-dir_path_tools = dir_path + "\\tools\\"
-dir_path_extracted_animations = dir_path + "\\extracted\\animations\\"
-dir_path_extracted_images = dir_path + "\\extracted\\images\\"
-dir_path_extracted_movies = dir_path + "\\extracted\\movies\\"
-dir_path_extracted_scripts = dir_path + "\\extracted\\scripts\\"
-dir_path_extracted_sounds = dir_path + "\\extracted\\sounds\\"
-dir_path_extracted_texts = dir_path + "\\extracted\\texts\\"
+print(dir_path)
+dir_path_extracted = dir_path + "extracted\\"
+dir_path_tools = dir_path + "tools\\"
+dir_path_extracted_animations = dir_path + "extracted\\animations\\"
+dir_path_extracted_images = dir_path + "extracted\\images\\"
+dir_path_extracted_movies = dir_path + "extracted\\movies\\"
+dir_path_extracted_scripts = dir_path + "extracted\\scripts\\"
+dir_path_extracted_sounds = dir_path + "extracted\\sounds\\"
+dir_path_extracted_texts = dir_path + "extracted\\texts\\"
 
 exkifint_v3_exe = "exkifint_v3.exe"
 cs2_exe = "cs2.exe"
@@ -86,12 +87,14 @@ zlib1_dll = "zlib1.dll"
 hgx2bmp_exe = "hgx2bmp.exe"
 exzt_exe = "exzt.exe"
 
-temp_archives = ["scene.int", "bgm.int", "config.int", "export.int", "fes.int", "image.int", "kcs.int", "kx2.int", "mot.int",
+# i am ignoring kx2.ini archive for now, since i have no idea about .kx2-files it has inside
+temp_archives = ["scene.int", "bgm.int", "config.int", "export.int", "fes.int", "image.int", "kcs.int", "mot.int",
                  "se.int", "ptcl.int", "movie.int", "update00.int", "update01.int", "update02.int", "update03.int", "update04.int"]
 temp_files = temp_archives.copy()
 temp_files.append(cs2_exe)
 temp_tools = [convert_php, decat2_exe, hgx2bmp_exe, zlib1_dll, exzt_exe, exkifint_v3_exe]  ###, "extract_text_to_xlsx.py"]
 optional_voice_packages = []
+
 
 # functions
 def press_any_key():
@@ -101,7 +104,6 @@ def press_any_key():
 def create_if_not_exists(_path_to_file_or_dir: str):
     if not os.path.exists(_path_to_file_or_dir):
         os.mkdir(_path_to_file_or_dir)
-        os.chmod(_path_to_file_or_dir, 0o777)
 
 
 def prepare_for_work():
@@ -141,14 +143,15 @@ def check_all_tools_intact():
         sys.exit(0)
 
 
-def copy_files_into_exctract_folder():
+def copy_files_into_extract_folder():
     print(locale_to_use[1])
-    if os.path.exists(dir_path + "\\cs2.bin"):
-        os.rename(dir_path + "\\cs2.bin", dir_path + "\\cs2.exe")
+    dir_path_cs2_bin = dir_path + "\\cs2.bin"
+    if os.path.exists(dir_path_cs2_bin):
+        os.chmod(dir_path_cs2_bin, 0o777)
+        os.rename(dir_path_cs2_bin, dir_path + "\\cs2.exe")
 
     for file in temp_files:
         if os.path.exists(dir_path + "\\" + file):
-            os.chmod(dir_path + "\\" + file, 0o777)
             print(str.format(locale_to_use[2], file))
             shutil.copy(dir_path + "\\" + file, dir_path_extracted + file)
 
@@ -156,7 +159,6 @@ def copy_files_into_exctract_folder():
 def extract_int_archives():
     os.chdir(dir_path_extracted)
     shutil.copy(dir_path_tools + exkifint_v3_exe, dir_path_extracted + exkifint_v3_exe)
-    os.chmod(dir_path_extracted + exkifint_v3_exe, 0o777)
     # unpacking from int archives
     if os.path.exists(dir_path_extracted + exkifint_v3_exe) \
             and os.path.exists(dir_path_extracted + cs2_exe):
@@ -171,7 +173,7 @@ def extract_int_archives():
                 print(str.format(locale_to_use[3], archive))
                 call([exkifint_v3_exe, archive, cs2_exe], stdin=None, stdout=None, stderr=None, shell=False)
     clean_files_from_dir(dir_path_extracted, ".int")
-    os.remove(dir_path_extracted + exkifint_v3_exe)
+    delete_file(dir_path_extracted + exkifint_v3_exe)
     os.chdir(dir_path)
 
 
@@ -179,10 +181,8 @@ def extract_zt_archives():
     os.chdir(dir_path_extracted)
     shutil.copy(dir_path_tools + exzt_exe, dir_path_extracted + exzt_exe)
     shutil.copy(dir_path_tools + zlib1_dll, dir_path_extracted + zlib1_dll)
-    os.chmod(dir_path_extracted + exzt_exe, 0o777)
-    os.chmod(dir_path_extracted + zlib1_dll, 0o777)
     # unpacking from int archives
-    if os.path.exists(dir_path_extracted + exzt_exe)\
+    if os.path.exists(dir_path_extracted + exzt_exe) \
             and os.path.exists(dir_path_extracted + zlib1_dll):
         for archive in os.listdir(dir_path_extracted):
             if archive.endswith(".zt"):
@@ -191,8 +191,8 @@ def extract_zt_archives():
                     print(str.format(locale_to_use[3], archive))
                     call([exzt_exe, archive], stdin=None, stdout=None, stderr=None, shell=False)
     clean_files_from_dir(dir_path_extracted, ".zt")
-    os.remove(dir_path_extracted + exzt_exe)
-    os.remove(dir_path_extracted + zlib1_dll)
+    delete_file(dir_path_extracted + exzt_exe)
+    delete_file(dir_path_extracted + zlib1_dll)
     os.chdir(dir_path)
 
 
@@ -201,8 +201,8 @@ def unpack_images():
     # unpacking .hg2 and .hg3 files to .bmp files
     shutil.copy(dir_path_tools + hgx2bmp_exe, dir_path_extracted_images + hgx2bmp_exe)
     shutil.copy(dir_path_tools + zlib1_dll, dir_path_extracted_images + zlib1_dll)
-    os.chmod(dir_path_extracted_images + hgx2bmp_exe, 0o777)
-    os.chmod(dir_path_extracted_images + zlib1_dll, 0o777)
+    # os.chmod(dir_path_extracted_images + hgx2bmp_exe, 0o777)
+    # os.chmod(dir_path_extracted_images + zlib1_dll, 0o777)
     if os.path.exists(dir_path_extracted_images + hgx2bmp_exe):
         for filename in os.listdir(dir_path_extracted_images):
             file = dir_path_extracted_images + filename
@@ -211,8 +211,8 @@ def unpack_images():
                 call([hgx2bmp_exe, filename], stdin=None, stdout=None, stderr=None, shell=False)
     clean_files_from_dir(dir_path_extracted_images, ".hg2")
     clean_files_from_dir(dir_path_extracted_images, ".hg3")
-    os.remove(dir_path_extracted_images + hgx2bmp_exe)
-    os.remove(dir_path_extracted_images + zlib1_dll)
+    delete_file(dir_path_extracted_images + hgx2bmp_exe)
+    delete_file(dir_path_extracted_images + zlib1_dll)
     os.chdir(dir_path)
 
 
@@ -220,7 +220,6 @@ def unpack_texts():
     os.chdir(dir_path_extracted_texts)
     # unpacking .cst files to .out files
     shutil.copy(dir_path_tools + decat2_exe, dir_path_extracted_texts + decat2_exe)
-    os.chmod(dir_path_extracted_texts + decat2_exe, 0o777)
     if os.path.exists(dir_path_extracted_texts + decat2_exe):
         for filename in os.listdir(dir_path_extracted_texts):
             file = dir_path_extracted_texts + filename
@@ -228,11 +227,10 @@ def unpack_texts():
                 print(str.format(locale_to_use[3], filename))
                 call([decat2_exe, filename], stdin=None, stdout=None, stderr=None, shell=False)
     clean_files_from_dir(dir_path_extracted_texts, ".cst")
-    os.remove(dir_path_extracted_texts + decat2_exe)
+    delete_file(dir_path_extracted_texts + decat2_exe)
 
     # next unpacking .out files to .txt files
     shutil.copy(dir_path_tools + convert_php, dir_path_extracted_texts + convert_php)
-    os.chmod(dir_path_extracted_texts + convert_php, 0o777)
     if os.path.exists(convert_php):
         for filename in os.listdir(dir_path_extracted_texts):
             file = dir_path_extracted_texts + filename
@@ -240,7 +238,7 @@ def unpack_texts():
                 print(str.format(locale_to_use[3], filename))
                 call(["php", convert_php, file], stdin=None, stdout=None, stderr=None, shell=False)
     clean_files_from_dir(dir_path_extracted_texts, ".out")
-    os.remove(dir_path_extracted_texts + convert_php)
+    delete_file(dir_path_extracted_texts + convert_php)
     # TODO next extracting text lines from .txt files into .xlsx files
     os.chdir(dir_path)
 
@@ -251,33 +249,19 @@ def sort_resulting_files():
 
     for filename in os.listdir(dir_path_extracted):
         file = dir_path_extracted + filename
-        if file.endswith(".anm"):
-            shutil.move(file, dir_path_extracted_animations + filename)
-
-    for filename in os.listdir(dir_path_extracted):
-        file = dir_path_extracted + filename
-        if file.endswith(".hg2") or file.endswith(".hg3") or file.endswith(".bmp") or file.endswith(".jpg"):
-            shutil.move(file, dir_path_extracted_images + filename)
-
-    for filename in os.listdir(dir_path_extracted):
-        file = dir_path_extracted + filename
-        if file.endswith(".mpg"):
-            shutil.move(file, dir_path_extracted_movies + filename)
-
-    for filename in os.listdir(dir_path_extracted):
-        file = dir_path_extracted + filename
-        if file.endswith(".fes") and file.endswith(".kcs"):
-            shutil.move(file, dir_path_extracted_scripts + filename)
-
-    for filename in os.listdir(dir_path_extracted):
-        file = dir_path_extracted + filename
-        if file.endswith(".ogg") or file.endswith(".wav"):
-            shutil.move(file, dir_path_extracted_sounds + filename)
-
-    for filename in os.listdir(dir_path_extracted):
-        file = dir_path_extracted + filename
-        if file.endswith(".cst"):
-            shutil.move(file, dir_path_extracted_texts + filename)
+        if os.path.isfile(file):
+            if file.endswith(".anm"):
+                shutil.move(file, dir_path_extracted_animations + filename)
+            if file.endswith(".hg2") or file.endswith(".hg3") or file.endswith(".bmp") or file.endswith(".jpg"):
+                shutil.move(file, dir_path_extracted_images + filename)
+            if file.endswith(".mpg"):
+                shutil.move(file, dir_path_extracted_movies + filename)
+            if file.endswith(".fes") or file.endswith(".kcs"):
+                shutil.move(file, dir_path_extracted_scripts + filename)
+            if file.endswith(".ogg") or file.endswith(".wav"):
+                shutil.move(file, dir_path_extracted_sounds + filename)
+            if file.endswith(".cst"):
+                shutil.move(file, dir_path_extracted_texts + filename)
 
     os.chdir(dir_path)
 
@@ -285,23 +269,31 @@ def sort_resulting_files():
 def remove_temp_files():
     print(locale_to_use[4])
     for file in temp_files:
-        if os.path.exists(dir_path_extracted + file):
-            os.remove(dir_path_extracted + file)
+        delete_file(dir_path_extracted + file)
     for file in temp_tools:
-        if os.path.exists(dir_path_extracted + file):
-            os.remove(dir_path_extracted + file)
+        delete_file(dir_path_extracted + file)
+
+
+def delete_file(path_to_file: str):
+    if os.path.exists(path_to_file):
+        os.chmod(path_to_file, 0o777)
+        os.remove(path_to_file)
+
+
+def remove_empty_folders():
     # also remove empty folders
     for pth in os.listdir(dir_path_extracted):
-        with os.scandir(dir_path_extracted + "\\" + pth) as it:
-            if not any(it):
-                os.rmdir(dir_path_extracted + "\\" + pth)
+        if os.path.isdir(dir_path_extracted + pth):
+            with os.scandir(dir_path_extracted + pth) as it:
+                if not any(it):
+                    os.rmdir(dir_path_extracted + pth)
 
 
 def clean_files_from_dir(_dir: str, _filetype: str):
     for filename in os.listdir(_dir):
         file = _dir + filename
         if file.endswith(_filetype):
-            os.remove(file)
+            delete_file(file)
 
 
 # core logic
@@ -312,25 +304,30 @@ if __name__ == '__main__':
         print(locale_to_use[0])
         press_any_key()
         prepare_for_work()
-        copy_files_into_exctract_folder()
+        copy_files_into_extract_folder()
         extract_int_archives()
         extract_zt_archives()
         sort_resulting_files()
+
         unpack_images()
+
         unpack_texts()
 
         # contact me if you know tool for it
         # unpack_fes_scripts()
 
         # contact me if you know tool for it
+        # unpack_kcs_scripts()
+
+        # contact me if you know tool for it
         # unpack_animations()
 
-        remove_temp_files()
     except Exception as error:
-        print("ERROR - " + str(error))
-        print("TRACEBACK - " + str("".join(traceback.format_exception(type(error),
-                                                                      value=error,
-                                                                      tb=error.__traceback__))).split(
+        print("ERROR - " + str("".join(traceback.format_exception(type(error),
+                                                                  value=error,
+                                                                  tb=error.__traceback__))).split(
             "The above exception was the direct cause of the following")[0])
     finally:
+        remove_temp_files()
+        remove_empty_folders()
         print(locale_to_use[6])  # done
