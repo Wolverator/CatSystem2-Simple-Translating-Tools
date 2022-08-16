@@ -1,8 +1,11 @@
-# CatSystem2SimpleTools
+# CatSystem2 Simple Tools
 Single-click tools to "extract movies, images and text right into editable state" and "pack all it back". Or as simple as I am able to make it :D (WIP)
 
 HUGE thanks to Trigger and his **[TriggersTools.CatSystem2 wiki](https://github.com/trigger-segfault/TriggersTools.CatSystem2)** for gathering all info on CS2 file formats and tools in one place!
 
+Grisaia `.int` files unpacker and extractor  = v0.5.2 stable\
+Grisaia compiler for your edited files and packer those into `updateXX.int`  = TBA\
+(should work with any CatSystem2 games, but if you encountered problems - contact me)
 
 Unpacker v0.5.2 features:
 1) extracts: \
