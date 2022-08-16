@@ -18,8 +18,10 @@ Unpacker v0.5.2 features:
 2.6) folder `texts` with `.txt` files (already unpacked from `.cst` files)\
 2.7) if there were no files moved into folder after whole process - folder is removed (since it's empty)
 
-Tested successfully on Grisaia 1, 2, 3; example of extracting some `int`-archives from The Fruit of Grisaia is attached as screenshot.
-
+Tested on games:
+1) **[Grisaia no Kajitsu](https://vndb.org/v5154)** (non-steam, unrated) =  ✅ success
+2) **[Grisaia no Meikyuu](https://vndb.org/v7723)** (non-steam, unrated) =  ✅ success
+3) **[Grisaia no Rakuen](https://vndb.org/v7724)** (non-steam, unrated) =  ✅ success
 
 Todo list:
 0) make main game's `.bin` and `.exe` usage easier for user (teach unpacker how to understand which file it needs to use)
