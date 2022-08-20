@@ -1,3 +1,4 @@
+import codecs
 import ctypes
 import locale
 import os
@@ -5,6 +6,8 @@ import shutil
 import sys
 import traceback
 from subprocess import call
+
+from pandas import DataFrame
 
 # locales to help more enthusiasts understand this tool
 # just create new list with your translation and insert it into "select_locale()"
@@ -16,6 +19,15 @@ from subprocess import call
 # locale[5] = sorting files
 # locale[6] = done! Enter to exit
 # locale[7] = error missing files, Enter to exit
+TRANSLATION_LINE_PATTERN = "translation for line #{0}"
+ORIGINAL_LINE_PATTERN = "original line #{0}"
+TEXT_LINE_END1 = "\\fn\r\n"
+TEXT_LINE_END2 = "@\r\n"
+SCENE_LINESTART1 = "\tscene "
+SCENE_LINESTART2 = "\tstr 155 "
+WRITE_TRANSLATION_HERE = "(write translation here)"
+CHOICE_OPTION = "choice_option"
+SCENE_TITLE = "scene_title"
 
 locale_to_use = []
 locale_ru = ["""Распаковщик ресурсов движка CatSystem2 авторства ShereKhanRomeo\n
@@ -35,13 +47,13 @@ locale_ru = ["""Распаковщик ресурсов движка CatSystem2 
 Файлы из каждого 'updateXX.int' архива перезаписывают соответствующие файлы из других .int-архивов,
 включая файлы из 'updateXX.int' архивов с меньшим номером, так что лучше копируйте сюда все update-архивы.
 После копирования всех архивов, подлежащих распаковке - нажмите Enter...\n""",
-             "\nКопирование файлов в папку 'extracted', может занимать до минуты на файл...",
-             "\nКопирование {0}...",
-             "\nРаспаковка {0}...",
-             "\nУдаление временных файлов...",
-             "\nСортировка получившихся файлов...",
-             "\nГотово! Программа будет закрыта.",
-             "\nОтсутствуют файлы в папке tools: {0}\nСкачайте или извлеките архив заново."]
+             "Копирование файлов в папку 'extracted' и распаковка 'int'-архивов может занимать до минуты на файл...",
+             "Копирование {0}...",
+             "Распаковка {0}...",
+             "Удаление временных файлов...",
+             "Сортировка получившихся файлов...",
+             "Готово! Программа будет закрыта.",
+             "Отсутствуют файлы в папке tools: {0}\nСкачайте или извлеките архив заново."]
 
 locale_default = ["""Resources unpacker for CatSystem2 games by ShereKhanRomeo\n
 HUGE thanks to Trigger-Segfault for explaining and tool links
@@ -59,17 +71,16 @@ optional files, depends on what your goal is
 Files in each 'updateXX.int' archive overwrite according files from other int-archives,
 including files from 'updateXX.int' archives with lesser number, so you better copy here all update-files.
 After copying all files in this folder press Enter...""",
-                  "\nCopying files into 'extracted' folder, may take up to 1 minute per file...",
-                  "\nCopying {0}...",
-                  "\nUnpacking {0}...",
-                  "\nRemoving temporary files...",
-                  "\nSorting resulting files...",
-                  "\nDone! Program will be closed now.",
-                  "\nFollowing tools are missing: {0}\nDownload or unpack archive again."]
+                  "Copying files into 'extracted' folder and unpacking 'int'-archives may take up to 1 minute per file...",
+                  "Copying {0}...",
+                  "Unpacking {0}...",
+                  "Removing temporary files...",
+                  "Sorting resulting files...",
+                  "Done! Program will be closed now.",
+                  "Following tools are missing: {0}\nDownload or unpack archive again."]
 
 # other variables
 dir_path = os.path.dirname(os.path.realpath(__file__)).replace("tools", "")
-print(dir_path)
 dir_path_extracted = dir_path + "extracted\\"
 dir_path_tools = dir_path + "tools\\"
 dir_path_extracted_animations = dir_path + "extracted\\animations\\"
@@ -78,11 +89,13 @@ dir_path_extracted_movies = dir_path + "extracted\\movies\\"
 dir_path_extracted_scripts = dir_path + "extracted\\scripts\\"
 dir_path_extracted_sounds = dir_path + "extracted\\sounds\\"
 dir_path_extracted_texts = dir_path + "extracted\\texts\\"
+dir_path_extracted_clean_texts_for_translations = dir_path + "extracted\\clean texts for translations\\"
+
+empty_character_name = "leave_empty"
 
 exkifint_v3_exe = "exkifint_v3.exe"
-cs2_exe = "cs2.exe"
-decat2_exe = "Decat2.exe"
-convert_php = "convert.php"
+game_main = "cs2.exe"
+cs2_decompile_exe = "cs2_decompile.exe"
 zlib1_dll = "zlib1.dll"
 hgx2bmp_exe = "hgx2bmp.exe"
 exzt_exe = "exzt.exe"
@@ -91,8 +104,8 @@ exzt_exe = "exzt.exe"
 temp_archives = ["scene.int", "bgm.int", "config.int", "export.int", "fes.int", "image.int", "kcs.int", "mot.int",
                  "se.int", "ptcl.int", "movie.int", "update00.int", "update01.int", "update02.int", "update03.int", "update04.int"]
 temp_files = temp_archives.copy()
-temp_files.append(cs2_exe)
-temp_tools = [convert_php, decat2_exe, hgx2bmp_exe, zlib1_dll, exzt_exe, exkifint_v3_exe]  ###, "extract_text_to_xlsx.py"]
+temp_files.append(game_main)
+temp_tools = [hgx2bmp_exe, zlib1_dll, exzt_exe, exkifint_v3_exe, cs2_decompile_exe]
 optional_voice_packages = []
 
 
@@ -119,6 +132,7 @@ def prepare_for_work():
     create_if_not_exists(dir_path_extracted_scripts)
     create_if_not_exists(dir_path_extracted_sounds)
     create_if_not_exists(dir_path_extracted_texts)
+    create_if_not_exists(dir_path_extracted_clean_texts_for_translations)
 
 
 def select_locale():
@@ -144,8 +158,10 @@ def check_all_tools_intact():
 
 
 def copy_files_into_extract_folder():
+    global game_main
     print(locale_to_use[1])
     dir_path_cs2_bin = dir_path + "\\cs2.bin"
+    # TODO make unpacker check for correct file with VCODEs not to make user rename files
     if os.path.exists(dir_path_cs2_bin):
         os.chmod(dir_path_cs2_bin, 0o777)
         os.rename(dir_path_cs2_bin, dir_path + "\\cs2.exe")
@@ -161,17 +177,17 @@ def extract_int_archives():
     shutil.copy(dir_path_tools + exkifint_v3_exe, dir_path_extracted + exkifint_v3_exe)
     # unpacking from int archives
     if os.path.exists(dir_path_extracted + exkifint_v3_exe) \
-            and os.path.exists(dir_path_extracted + cs2_exe):
+            and os.path.exists(dir_path_extracted + game_main):
         for archive in temp_archives:
             archive_ini = dir_path_extracted + archive
             if os.path.exists(archive_ini):
                 print(str.format(locale_to_use[3], archive))
-                call([exkifint_v3_exe, archive, cs2_exe], stdin=None, stdout=None, stderr=None, shell=False)
+                call([exkifint_v3_exe, archive, game_main], stdin=None, stdout=None, stderr=None, shell=False)
         for archive in optional_voice_packages:
             archive_ini = dir_path_extracted + archive
             if os.path.exists(archive_ini):
                 print(str.format(locale_to_use[3], archive))
-                call([exkifint_v3_exe, archive, cs2_exe], stdin=None, stdout=None, stderr=None, shell=False)
+                call([exkifint_v3_exe, archive, game_main], stdin=None, stdout=None, stderr=None, shell=False)
     clean_files_from_dir(dir_path_extracted, ".int")
     delete_file(dir_path_extracted + exkifint_v3_exe)
     os.chdir(dir_path)
@@ -201,8 +217,6 @@ def unpack_images():
     # unpacking .hg2 and .hg3 files to .bmp files
     shutil.copy(dir_path_tools + hgx2bmp_exe, dir_path_extracted_images + hgx2bmp_exe)
     shutil.copy(dir_path_tools + zlib1_dll, dir_path_extracted_images + zlib1_dll)
-    # os.chmod(dir_path_extracted_images + hgx2bmp_exe, 0o777)
-    # os.chmod(dir_path_extracted_images + zlib1_dll, 0o777)
     if os.path.exists(dir_path_extracted_images + hgx2bmp_exe):
         for filename in os.listdir(dir_path_extracted_images):
             file = dir_path_extracted_images + filename
@@ -219,28 +233,112 @@ def unpack_images():
 def unpack_texts():
     os.chdir(dir_path_extracted_texts)
     # unpacking .cst files to .out files
-    shutil.copy(dir_path_tools + decat2_exe, dir_path_extracted_texts + decat2_exe)
-    if os.path.exists(dir_path_extracted_texts + decat2_exe):
+    shutil.copy(dir_path_tools + cs2_decompile_exe, dir_path_extracted_texts + cs2_decompile_exe)
+    if os.path.exists(dir_path_extracted_texts + cs2_decompile_exe):
         for filename in os.listdir(dir_path_extracted_texts):
             file = dir_path_extracted_texts + filename
             if file.endswith(".cst"):
                 print(str.format(locale_to_use[3], filename))
-                call([decat2_exe, filename], stdin=None, stdout=None, stderr=None, shell=False)
+                call([cs2_decompile_exe, filename], stdin=None, stdout=None, stderr=None, shell=False)
     clean_files_from_dir(dir_path_extracted_texts, ".cst")
-    delete_file(dir_path_extracted_texts + decat2_exe)
+    delete_file(dir_path_extracted_texts + cs2_decompile_exe)
 
-    # next unpacking .out files to .txt files
-    shutil.copy(dir_path_tools + convert_php, dir_path_extracted_texts + convert_php)
-    if os.path.exists(convert_php):
-        for filename in os.listdir(dir_path_extracted_texts):
-            file = dir_path_extracted_texts + filename
-            if file.endswith(".out"):
-                print(str.format(locale_to_use[3], filename))
-                call(["php", convert_php, file], stdin=None, stdout=None, stderr=None, shell=False)
-    clean_files_from_dir(dir_path_extracted_texts, ".out")
-    delete_file(dir_path_extracted_texts + convert_php)
-    # TODO next extracting text lines from .txt files into .xlsx files
+    # extracting text lines from .txt files into .xlsx files
+    extract_clean_text()
     os.chdir(dir_path)
+
+
+def extract_clean_text():
+    for filename in os.listdir(dir_path_extracted_texts):
+        if os.path.isfile(filename) and filename.endswith(".txt"):
+            print(str.format(locale_to_use[3], filename))
+            encodingShiftJIS = "ShiftJIS"
+            file_lines = []
+            text_lines = []
+            with codecs.open(dir_path_extracted_texts + filename, mode="rb", encoding=encodingShiftJIS) as file:
+                file_lines = file.readlines()
+                file.close()
+            for line in file_lines[1:]:
+                if line.endswith(TEXT_LINE_END1) or line.endswith(TEXT_LINE_END2) or line.startswith(SCENE_LINESTART1) or line.startswith(SCENE_LINESTART2):
+                    # text lines we need for translation
+                    text_lines.append(line)
+                else:
+                    # selection also contains links to parts according to player choice
+                    # but also contain texts (!not always, be careful!) that we might wanna translate
+                    selection = "fselect"
+                    if selection in line:
+                        next_index1 = file_lines.index(line) + 1
+                        next_index2 = file_lines.index(line) + 2
+                        next_index3 = file_lines.index(line) + 3
+                        if len(file_lines) > next_index1:
+                            if len(file_lines[next_index1].split(" ")) == 3:
+                                # process linking
+                                next_part = file_lines[next_index1].split(" ")[1]
+                                # and add to list for translation
+                                text_lines.append(file_lines[next_index1])
+                        if len(file_lines) > next_index2:
+                            if len(file_lines[next_index2].split(" ")) == 3:
+                                # process linking
+                                next_part = file_lines[next_index2].split(" ")[1]
+                                # and add to list for translation
+                                text_lines.append(file_lines[next_index2])
+                        if len(file_lines) > next_index3:
+                            if len(file_lines[next_index3].split(" ")) == 3:
+                                # process linking
+                                next_part = file_lines[next_index3].split(" ")[1]
+                                # and add to list for translation
+                                text_lines.append(file_lines[next_index3])
+
+            column1_ids = []
+            column2_names = []
+            column3_lines = []
+            for i in range(len(text_lines)):
+                current_line = text_lines[i]
+                if current_line.endswith(TEXT_LINE_END1) or current_line.endswith(TEXT_LINE_END2):
+                    # if it's usual text line
+                    text_line_parts = text_lines[i].split("\t")
+                    if len(text_line_parts) == 2:
+                        character_name = text_line_parts[0]
+                        if len(character_name) == 0:
+                            character_name = empty_character_name
+                        column2_names.append(character_name)
+                        column2_names.append(character_name)
+
+                        text_line = text_line_parts[1]
+                        # we need to remove "@" if present, but only if it's at the end of the line, not to remove "@" from inside the main text
+                        column3_lines.append(text_line.replace(TEXT_LINE_END2, "").replace("\r\n", "").replace("\\fn", "").replace("[", "").replace("]", ""))
+                        column3_lines.append(WRITE_TRANSLATION_HERE)
+                        column1_ids.append(str.format(ORIGINAL_LINE_PATTERN, i))
+                        column1_ids.append(str.format(TRANSLATION_LINE_PATTERN, i))
+                    else:
+                        # print("DEBUG " + str(len(text_line_parts)))
+                        raise Exception("\n\n!!ERROR!!\nThere are lines with more that one TAB symbol in 1 line!\nThis is unexpected... "
+                                        + "Please, contact developer on github with screenshot of this line:\n "
+                                        + str(current_line.encode(encoding=encodingShiftJIS)) + "\n")
+
+                elif current_line.startswith(SCENE_LINESTART1) or current_line.startswith(SCENE_LINESTART2):
+                    # if it's scene title (naming)
+                    column2_names.append(SCENE_TITLE)
+                    column2_names.append(SCENE_TITLE)
+                    column3_lines.append(current_line.replace(SCENE_LINESTART1, "").replace(SCENE_LINESTART2, "").replace("\r\n", ""))
+                    column3_lines.append(WRITE_TRANSLATION_HERE)
+                    column1_ids.append(str.format(ORIGINAL_LINE_PATTERN, i))
+                    column1_ids.append(str.format(TRANSLATION_LINE_PATTERN, i))
+                elif current_line.startswith("\t0") or current_line.startswith("\t1"):
+                    # if it's choice line
+                    column2_names.append(CHOICE_OPTION)
+                    column2_names.append(CHOICE_OPTION)
+                    # print("DEBUG " + str(current_line.encode(encoding=encodingShiftJIS)))
+                    column3_lines.append(current_line.split(" ")[2].replace("\r\n", ""))
+                    column3_lines.append(WRITE_TRANSLATION_HERE)
+                    column1_ids.append(str.format(ORIGINAL_LINE_PATTERN, i))
+                    column1_ids.append(str.format(TRANSLATION_LINE_PATTERN, i))
+                    # print("DEBUG " + str(current_line.split(" ")[2].replace("　", " ").replace("_", " ").replace("|", " ").replace("\r\n", "").encode(encoding=encodingShiftJIS)))
+                    # press_any_key()
+
+            if len(column1_ids) > 0 and len(column2_names) > 0 and len(column3_lines) > 0:
+                DataFrame({"Lines numbers": column1_ids, "Character name": column2_names, "Line text (!make sure to understand how nametable works before translating names!)": column3_lines}) \
+                    .to_excel(dir_path_extracted_clean_texts_for_translations + filename.replace(".txt", ".xlsx"), sheet_name='sheet1', index=False)
 
 
 def sort_resulting_files():
