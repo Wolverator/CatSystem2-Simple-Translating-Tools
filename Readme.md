@@ -4,14 +4,14 @@ Single-click tools to "extract movies, images and text right into editable state
 HUGE thanks to Trigger and his **[TriggersTools.CatSystem2 wiki](https://github.com/trigger-segfault/TriggersTools.CatSystem2)** for gathering all info on CS2 file formats and tools in one place!
 
 Grisaia `.int` files unpacker and extractor  = v0.6 possibly stable (?)\
-Grisaia compiler for your edited files and packer those into `updateXX.int`  = TBA\
+Grisaia compiler for your edited files and packer those into `updateXX.int`  = 0.4 maybe stable (?)\
 (should work with any CatSystem2 games, but if you encountered problems - contact me)
 
 ### TL;DR:
 1) copy `.bat` files and `tools` folder into your game folder
 2) run `_unpack.bat`
 3) inside `extracted` folder remove files you don't need, change files you want changed
-4) (not implemented yet) run `_pack.bat` - it will take all files in `extracted` folder and pack them into single `updateXX.int` file, where XX = 1 + biggest index of existing `updateYY.int` files (will be `update00.int` if there were no such files before)
+4) run `_pack.bat` - it will take all files in `extracted` folder and pack them into single `updateXX.int` file, where XX = 1 + biggest index of existing `updateYY.int` files (will be `update00.int` if there were no such files before)
 
 ## Unpacker features:
 1) extracts:
@@ -29,13 +29,19 @@ Grisaia compiler for your edited files and packer those into `updateXX.int`  = T
    + folder `clean texts for translations` with `.xslx` (extracted from text `.txt` files)\
    + if there were no files moved into folder after whole process - folder is removed (since it's empty)
 
+## Packer features:
+1) takes all files in `extracted` folder and packs them from according folders into `updateXX.int`, where `XX` is the index of existing update-files +1, starting with `update00.int`
+2) takes translations from `.xlsx` files into `.txt` files and them packs `.cst` files
+3) (TODO) packing images (if possible?)
+4) packing scripts (if possible?)
+
 ## Tested on games:
-1) **[Grisaia no Kajitsu](https://vndb.org/v5154)** (non-steam, unrated) =  ✅ success
+1) **[Grisaia no Kajitsu](https://vndb.org/v5154)** (non-steam, unrated) and (steam, all-ages) =  ✅ success
 2) **[Grisaia no Meikyuu](https://vndb.org/v7723)** (non-steam, unrated) =  ✅ success
 3) **[Grisaia no Rakuen](https://vndb.org/v7724)** (non-steam, unrated) =  ✅ success
 
 ## Todo list:
-1) move functions from `.php` files into `.exe`, `.py.` or `.bat` files, since now it requires user to install PHP in order to run this tool (it also requires Python 3.10, but that's easier than PHP, means acceptable, imo :thinking: )
+1) move functions from `.py.` or `.bat` files (if possible?)
 2) implement `.fes` unpacker (possible, tested manually)
 3) implement `.kcs` unpacker (if possible?)
 4) implement `.anm` unpacker (if possible?)
