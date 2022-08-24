@@ -1,6 +1,6 @@
 import os
 
-path = os.path.dirname(os.path.realpath(__file__)) + "\\extracted\\texts"
+path = os.path.dirname(os.path.realpath(__file__)) #+ "\\extracted\\texts"
 in_files = ".txt"
 encod = "ShiftJIS"
 #print("path= " + path)

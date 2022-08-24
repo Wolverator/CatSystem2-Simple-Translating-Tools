@@ -7,7 +7,7 @@ import sys
 import traceback
 from subprocess import call
 
-from pandas import DataFrame
+from pandas import DataFrame, ExcelWriter
 
 # locales to help more enthusiasts understand this tool
 # just create new list with your translation and insert it into "select_locale()"
@@ -152,7 +152,7 @@ def check_all_tools_intact():
         if not os.path.exists(dir_path_tools + tool):
             missing_files += tool + " "
     if len(missing_files) > 0:
-        print(str.format(locale_to_use[5], missing_files))
+        print(str.format(locale_to_use[7], missing_files))
         press_any_key()
         sys.exit(0)
 
@@ -212,6 +212,37 @@ def extract_zt_archives():
     os.chdir(dir_path)
 
 
+def unpack_animations():
+    os.chdir(dir_path_extracted_animations)
+    # unpacking .hg2 and .hg3 files to .bmp files
+    shutil.copy(dir_path_tools + cs2_decompile_exe, dir_path_extracted_animations + cs2_decompile_exe)
+    # shutil.copy(dir_path_tools + zlib1_dll, dir_path_extracted_images + zlib1_dll)
+    if os.path.exists(dir_path_extracted_animations + cs2_decompile_exe):
+        for filename in os.listdir(dir_path_extracted_animations):
+            file = dir_path_extracted_animations + filename
+            if file.endswith(".anm"):
+                print(str.format(locale_to_use[3], filename))
+                call([cs2_decompile_exe, filename], stdin=None, stdout=None, stderr=None, shell=False)
+    # clean_files_from_dir(dir_path_extracted_scripts, ".hg2")
+    # clean_files_from_dir(dir_path_extracted_scripts, ".hg3")
+    delete_file(dir_path_extracted_animations + cs2_decompile_exe)
+    # delete_file(dir_path_extracted_images + zlib1_dll)
+    os.chdir(dir_path)
+
+
+def unpack_scripts():
+    os.chdir(dir_path_extracted_scripts)
+    shutil.copy(dir_path_tools + cs2_decompile_exe, dir_path_extracted_scripts + cs2_decompile_exe)
+    if os.path.exists(dir_path_extracted_scripts + cs2_decompile_exe):
+        for filename in os.listdir(dir_path_extracted_scripts):
+            file = dir_path_extracted_scripts + filename
+            if file.endswith(".kcs") or file.endswith(".fes"):
+                print(str.format(locale_to_use[3], filename))
+                call([cs2_decompile_exe, filename], stdin=None, stdout=None, stderr=None, shell=False)
+    delete_file(dir_path_extracted_scripts + cs2_decompile_exe)
+    os.chdir(dir_path)
+
+
 def unpack_images():
     os.chdir(dir_path_extracted_images)
     # unpacking .hg2 and .hg3 files to .bmp files
@@ -255,9 +286,12 @@ def extract_clean_text():
             encodingShiftJIS = "ShiftJIS"
             file_lines = []
             text_lines = []
-            with codecs.open(dir_path_extracted_texts + filename, mode="rb", encoding=encodingShiftJIS) as file:
-                file_lines = file.readlines()
-                file.close()
+            try:
+                with codecs.open(dir_path_extracted_texts + filename, mode="rb", encoding=encodingShiftJIS) as file:
+                    file_lines = file.readlines()
+                    file.close()
+            except UnicodeDecodeError as err:
+                continue
             for line in file_lines[1:]:
                 if line.endswith(TEXT_LINE_END1) or line.endswith(TEXT_LINE_END2) or line.startswith(SCENE_LINESTART1) or line.startswith(SCENE_LINESTART2):
                     # text lines we need for translation
@@ -272,21 +306,12 @@ def extract_clean_text():
                         next_index3 = file_lines.index(line) + 3
                         if len(file_lines) > next_index1:
                             if len(file_lines[next_index1].split(" ")) == 3:
-                                # process linking
-                                next_part = file_lines[next_index1].split(" ")[1]
-                                # and add to list for translation
                                 text_lines.append(file_lines[next_index1])
                         if len(file_lines) > next_index2:
                             if len(file_lines[next_index2].split(" ")) == 3:
-                                # process linking
-                                next_part = file_lines[next_index2].split(" ")[1]
-                                # and add to list for translation
                                 text_lines.append(file_lines[next_index2])
                         if len(file_lines) > next_index3:
                             if len(file_lines[next_index3].split(" ")) == 3:
-                                # process linking
-                                next_part = file_lines[next_index3].split(" ")[1]
-                                # and add to list for translation
                                 text_lines.append(file_lines[next_index3])
 
             column1_ids = []
@@ -306,12 +331,11 @@ def extract_clean_text():
 
                         text_line = text_line_parts[1]
                         # we need to remove "@" if present, but only if it's at the end of the line, not to remove "@" from inside the main text
-                        column3_lines.append(text_line.replace(TEXT_LINE_END2, "").replace("\r\n", "").replace("\\fn", "").replace("[", "").replace("]", ""))
+                        column3_lines.append(text_line.replace(TEXT_LINE_END2, "").replace("\r\n", "").replace("\\fn", ""))
                         column3_lines.append(WRITE_TRANSLATION_HERE)
                         column1_ids.append(str.format(ORIGINAL_LINE_PATTERN, i))
                         column1_ids.append(str.format(TRANSLATION_LINE_PATTERN, i))
                     else:
-                        # print("DEBUG " + str(len(text_line_parts)))
                         raise Exception("\n\n!!ERROR!!\nThere are lines with more that one TAB symbol in 1 line!\nThis is unexpected... "
                                         + "Please, contact developer on github with screenshot of this line:\n "
                                         + str(current_line.encode(encoding=encodingShiftJIS)) + "\n")
@@ -328,17 +352,20 @@ def extract_clean_text():
                     # if it's choice line
                     column2_names.append(CHOICE_OPTION)
                     column2_names.append(CHOICE_OPTION)
-                    # print("DEBUG " + str(current_line.encode(encoding=encodingShiftJIS)))
                     column3_lines.append(current_line.split(" ")[2].replace("\r\n", ""))
                     column3_lines.append(WRITE_TRANSLATION_HERE)
                     column1_ids.append(str.format(ORIGINAL_LINE_PATTERN, i))
                     column1_ids.append(str.format(TRANSLATION_LINE_PATTERN, i))
-                    # print("DEBUG " + str(current_line.split(" ")[2].replace("　", " ").replace("_", " ").replace("|", " ").replace("\r\n", "").encode(encoding=encodingShiftJIS)))
-                    # press_any_key()
 
             if len(column1_ids) > 0 and len(column2_names) > 0 and len(column3_lines) > 0:
-                DataFrame({"Lines numbers": column1_ids, "Character name": column2_names, "Line text (!make sure to understand how nametable works before translating names!)": column3_lines}) \
-                    .to_excel(dir_path_extracted_clean_texts_for_translations + filename.replace(".txt", ".xlsx"), sheet_name='sheet1', index=False)
+                df = DataFrame({"Lines numbers": column1_ids, "Character name": column2_names, "Line text (!make sure to understand how nametable works before translating names!)": column3_lines})
+                writer = ExcelWriter(dir_path_extracted_clean_texts_for_translations + filename.replace(".txt", ".xlsx"))
+                df.to_excel(writer, sheet_name='sheetName', index=False, na_rep='NaN')
+                for column in df:
+                    column_length = max(df[column].astype(str).map(len).max(), len(column))
+                    col_idx = df.columns.get_loc(column)
+                    writer.sheets['sheetName'].set_column(col_idx, col_idx, column_length)
+                writer.save()
 
 
 def sort_resulting_files():
@@ -395,37 +422,28 @@ def clean_files_from_dir(_dir: str, _filetype: str):
 
 
 # core logic
-if __name__ == '__main__':
-    try:
-        select_locale()
-        check_all_tools_intact()
-        print(locale_to_use[0])
-        press_any_key()
-        prepare_for_work()
-        copy_files_into_extract_folder()
-        extract_int_archives()
-        extract_zt_archives()
-        sort_resulting_files()
+try:
+    select_locale()
+    check_all_tools_intact()
+    print(locale_to_use[0])
+    press_any_key()
+    prepare_for_work()
+    copy_files_into_extract_folder()
+    extract_int_archives()
+    extract_zt_archives()
+    sort_resulting_files()
 
-        unpack_images()
+    unpack_images()
+    unpack_texts()
+    unpack_scripts()
+    unpack_animations()
 
-        unpack_texts()
-
-        # contact me if you know tool for it
-        # unpack_fes_scripts()
-
-        # contact me if you know tool for it
-        # unpack_kcs_scripts()
-
-        # contact me if you know tool for it
-        # unpack_animations()
-
-    except Exception as error:
-        print("ERROR - " + str("".join(traceback.format_exception(type(error),
-                                                                  value=error,
-                                                                  tb=error.__traceback__))).split(
-            "The above exception was the direct cause of the following")[0])
-    finally:
-        remove_temp_files()
-        remove_empty_folders()
-        print(locale_to_use[6])  # done
+except Exception as error:
+    print("ERROR - " + str("".join(traceback.format_exception(type(error),
+                                                              value=error,
+                                                              tb=error.__traceback__))).split(
+        "The above exception was the direct cause of the following")[0])
+finally:
+    remove_temp_files()
+    remove_empty_folders()
+    print(locale_to_use[6])  # done
