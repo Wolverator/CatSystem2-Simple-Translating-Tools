@@ -3,6 +3,16 @@ Single-click tools to "extract movies, images and text right into editable state
 
 HUGE thanks to Trigger and his **[TriggersTools.CatSystem2 wiki](https://github.com/trigger-segfault/TriggersTools.CatSystem2)** for gathering all info on CS2 file formats and tools in one place!
 
+### Known problems:
+1) ShiftJIS (game engine encoding) doesn't support use of some specific symbols from some languages:
+   + `Ää, Öö, Üü, ß` from German; 
+   + `Áá, Ââ, Ãã, Àà, Çç, Éé, Êê, Íí, Óó, Ôô, Õõ, Úú` from portuguese; 
+   + `Ññ` from Spanish; 
+   + `Èè, Ëë, Îî, Ïï, Ûû, Ùù, Ÿÿ` from French; etc.
+
+Possible solution = create and use custom font that shows required unsupported symbols instead of unused symbols (f.e. Cyrillic ones),
+E.g.: you need the game to show word `Färbung` so you type something like `Fьrbung` and font shows `ь` as `ä`.
+
 Grisaia `.int` files unpacker and extractor  = v0.6 possibly stable (?)\
 Grisaia compiler for your edited files and packer those into `updateXX.int`  = 0.4 maybe stable (?)\
 (should work with any CatSystem2 games, but if you encountered problems - contact me)
@@ -32,8 +42,7 @@ Grisaia compiler for your edited files and packer those into `updateXX.int`  = 0
 ## Packer features:
 1) takes all files in `extracted` folder and packs them from according folders into `updateXX.int`, where `XX` is the index of existing update-files +1, starting with `update00.int`
 2) takes translations from `.xlsx` files into `.txt` files and them packs `.cst` files
-3) (TODO) packing images (if possible?)
-4) packing scripts (if possible?)
+3) packing scripts 
 
 ## Tested on games:
 1) **[Grisaia no Kajitsu](https://vndb.org/v5154)** (non-steam, unrated) and (steam, all-ages) =  ✅ success
@@ -41,7 +50,5 @@ Grisaia compiler for your edited files and packer those into `updateXX.int`  = 0
 3) **[Grisaia no Rakuen](https://vndb.org/v7724)** (non-steam, unrated) =  ✅ success
 
 ## Todo list:
-1) move functions from `.py.` or `.bat` files (if possible?)
-2) implement `.fes` unpacker (possible, tested manually)
-3) implement `.kcs` unpacker (if possible?)
-4) implement `.anm` unpacker (if possible?)
+1) create custom font for specific symbols and include option to use it with automatic symbols swapping.
+   + f.e.: you type `ä`, packer understands it and replaces for "encoded" symbols, while ingame it'll still be shown as `ä`

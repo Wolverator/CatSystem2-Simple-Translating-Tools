@@ -22,9 +22,10 @@ from pandas import DataFrame, ExcelWriter
 TRANSLATION_LINE_PATTERN = "translation for line #{0}"
 ORIGINAL_LINE_PATTERN = "original line #{0}"
 TEXT_LINE_END1 = "\\fn\r\n"
-TEXT_LINE_END2 = "@\r\n"
+TEXT_LINE_END2 = "\\@\r\n"
 SCENE_LINESTART1 = "\tscene "
-SCENE_LINESTART2 = "\tstr 155 "
+SCENE_LINESTART2 = "\tstr 3 " # for Grisaia1 steam version
+SCENE_LINESTART3 = "\tstr 155 " # for Grisaia1 unrated version
 WRITE_TRANSLATION_HERE = "(write translation here)"
 CHOICE_OPTION = "choice_option"
 SCENE_TITLE = "scene_title"
@@ -102,7 +103,9 @@ exzt_exe = "exzt.exe"
 
 # i am ignoring kx2.ini archive for now, since i have no idea about .kx2-files it has inside
 temp_archives = ["scene.int", "bgm.int", "config.int", "export.int", "fes.int", "image.int", "kcs.int", "mot.int",
-                 "se.int", "ptcl.int", "movie.int", "update00.int", "update01.int", "update02.int", "update03.int", "update04.int"]
+                 "se.int", "ptcl.int", "movie.int", "update00.int", "update01.int", "update02.int", "update03.int",
+                 "update04.int", "update05.int", "update06.int", "update07.int", "update08.int", "update09.int",
+                 "update10.int", "update11.int", "update12.int", "update13.int", "update14.int", "update15.int"]
 temp_files = temp_archives.copy()
 temp_files.append(game_main)
 temp_tools = [hgx2bmp_exe, zlib1_dll, exzt_exe, exkifint_v3_exe, cs2_decompile_exe]
@@ -280,6 +283,8 @@ def unpack_texts():
 
 
 def extract_clean_text():
+    #TODO do not override Excel files (for cases if person already works there
+    #TODO ask if override is needed
     for filename in os.listdir(dir_path_extracted_texts):
         if os.path.isfile(filename) and filename.endswith(".txt"):
             print(str.format(locale_to_use[3], filename))
@@ -293,26 +298,10 @@ def extract_clean_text():
             except UnicodeDecodeError as err:
                 continue
             for line in file_lines[1:]:
-                if line.endswith(TEXT_LINE_END1) or line.endswith(TEXT_LINE_END2) or line.startswith(SCENE_LINESTART1) or line.startswith(SCENE_LINESTART2):
+                if line.endswith(TEXT_LINE_END1) or line.endswith(TEXT_LINE_END2)\
+                        or line.startswith(SCENE_LINESTART1) or line.startswith(SCENE_LINESTART2) or line.startswith(SCENE_LINESTART3):
                     # text lines we need for translation
                     text_lines.append(line)
-                else:
-                    # selection also contains links to parts according to player choice
-                    # but also contain texts (!not always, be careful!) that we might wanna translate
-                    selection = "fselect"
-                    if selection in line:
-                        next_index1 = file_lines.index(line) + 1
-                        next_index2 = file_lines.index(line) + 2
-                        next_index3 = file_lines.index(line) + 3
-                        if len(file_lines) > next_index1:
-                            if len(file_lines[next_index1].split(" ")) == 3:
-                                text_lines.append(file_lines[next_index1])
-                        if len(file_lines) > next_index2:
-                            if len(file_lines[next_index2].split(" ")) == 3:
-                                text_lines.append(file_lines[next_index2])
-                        if len(file_lines) > next_index3:
-                            if len(file_lines[next_index3].split(" ")) == 3:
-                                text_lines.append(file_lines[next_index3])
 
             column1_ids = []
             column2_names = []
@@ -435,8 +424,8 @@ try:
 
     unpack_images()
     unpack_texts()
-    unpack_scripts()
-    unpack_animations()
+    #unpack_scripts()
+    #unpack_animations()
 
 except Exception as error:
     print("ERROR - " + str("".join(traceback.format_exception(type(error),

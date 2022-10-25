@@ -133,19 +133,20 @@ def pack_texts():
             file_lines = []
             # second - insert them into their places in .txt files
             if os.path.exists(dir_path_extracted_texts + text_file):
-                with codecs.open(dir_path_extracted_texts + text_file, mode="r", encoding=encodingShiftJIS) as file:
-                    file_lines = file.readlines()
-                    file.close()
-                with codecs.open(dir_path_package + text_file, mode="w", encoding=encodingShiftJIS) as file:
+                with codecs.open(dir_path_extracted_texts + text_file, mode="r", encoding=encodingShiftJIS) as source_txt_file:
+                    file_lines = source_txt_file.readlines()
+                    source_txt_file.close()
+                with codecs.open(dir_path_package + text_file, mode="w", encoding=encodingShiftJIS) as result_txt_file:
                     for file_line in file_lines:
                         # print("DEBUG")
                         # print("looking for: " + text_lines[0])
                         # print("inside line: " + file_line)
                         # press_any_key()
                         if len(text_lines) > 0 and text_lines[0] in file_line and text_lines[1] != WRITE_TRANSLATION_HERE:
-                            file_line = file_line.replace(text_lines.pop(0), text_lines.pop(0))
+                            file_line = file_line.replace(text_lines.pop(0), '[' + text_lines.pop(0).replace('…', '...').replace(' ', '] [').replace('"', '“').replace("'", '`') + ']')
                             file_line = file_line.replace(text_names.pop(0), text_names.pop(0))
-                        file.write(file_line)
+                        result_txt_file.write(file_line)
+                        result_txt_file.flush()
             else:
                 raise Exception(str.format("ERROR - Missing required file = {0}.\nPlease, restore the file into {1} folder or do unpacking process again!", text_file, dir_path_extracted_texts))
     # then use mc.exe
@@ -174,6 +175,7 @@ def pack_int_archive():
 try:
     select_locale()
     check_all_tools_intact()
+    # todo add archive number
     print(locale_to_use[0])
     press_any_key()
     # pack_images()
