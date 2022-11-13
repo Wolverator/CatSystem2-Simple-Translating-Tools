@@ -321,7 +321,7 @@ def extract_clean_text():
 
 
             if len(column1_ids) > 0 and len(column2_names) > 0 and len(column3_lines) > 0:
-                df = DataFrame({"Lines numbers": column1_ids, "Character name": column2_names, "Line text (!make sure to understand how nametable works before translating names!)": column3_lines})
+                df = DataFrame({"Lines numbers": column1_ids, "Character name": column2_names, "Line text": column3_lines})
                 writer = ExcelWriter(file_xlsx)
                 df.to_excel(writer, sheet_name='sheetName', index=False, na_rep='NaN')
                 for column in df:

@@ -106,7 +106,7 @@ def prepare_to_pack_texts():
     os.chdir(dir_path)
     for filename in os.listdir(dir_path_translations_clean_texts):
         # first - get translations from .xlsx files
-        if os.path.isfile(dir_path_translations_clean_texts + filename) and filename.endswith(".xlsx"):
+        if os.path.isfile(dir_path_translations_clean_texts + filename) and filename.endswith(".xlsx") and not filename.startswith("~"):
             print(str.format(messages[3], filename))
             df = pandas.ExcelFile(dir_path_translations_clean_texts + filename) \
                 .parse(pandas.ExcelFile(dir_path_translations_clean_texts + filename).sheet_names[0])
@@ -128,9 +128,9 @@ def prepare_to_pack_texts():
                             text_to_replace = text_lines.pop(0)
                             replacement_text = text_lines.pop(0) \
                                 .replace('№', '#') \
-                                .replace('ë', 'ё') \
                                 .replace('…', '...') \
                                 .replace('"', '“') \
+                                .replace('ë', 'ё') \
                                 .replace("'", '`')
 
                             name_to_replace = text_names.pop(0)

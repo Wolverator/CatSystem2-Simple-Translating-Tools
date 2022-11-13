@@ -135,7 +135,7 @@ def apply_names_translations_nametable():
         name0 = column0_array[1].strip("【】").replace("\\fs　\\fn", " ")
     else:
         name0 = column0_array[1].replace("\\fs　\\fn", " ")
-    translated_name0 = translate_name(name0, xlsx_original_names, xlsx_translated_names).replace(" ", "\\fs　\\fn")
+    translated_name0 = translate_name(name0, xlsx_original_names, xlsx_translated_names).replace(" ", "\\fs　\\fn").replace('ë', 'ё')
     if jp_brackets0:
         translated_name0 = "【" + translated_name0 + "】"
     column0_array[1] = translated_name0
@@ -149,7 +149,7 @@ def apply_names_translations_nametable():
             name = array[1].strip("【】").replace("\\fs　\\fn", " ")
         else:
             name = array[1].replace("\\fs　\\fn", " ")
-        translated_name = translate_name(name, xlsx_original_names, xlsx_translated_names).replace(" ", "\\fs　\\fn")
+        translated_name = translate_name(name, xlsx_original_names, xlsx_translated_names).replace(" ", "\\fs　\\fn").replace('ë', 'ё')
         if jp_brackets:
             translated_name = "【" + translated_name + "】"
         array[1] = translated_name
@@ -175,7 +175,7 @@ def apply_names_translations_texts():
                 column2_names.append(column2_names_old.pop(0))
                 column2_names.append(translate_name(column2_names_old.pop(0).replace("\\fs　\\fn", " "), xlsx_original_names, xlsx_translated_names).replace(" ", "\\fs　\\fn"))
 
-            df = DataFrame({"Lines numbers": column1_ids, "Character name": column2_names, "Line text (!make sure to understand how nametable works before translating names!)": column3_lines})
+            df = DataFrame({"Lines numbers": column1_ids, "Character name": column2_names, "Line text": column3_lines})
             writer = ExcelWriter(file_xlsx)
             df.to_excel(writer, sheet_name='sheetName', index=False, na_rep='NaN')
             for column in df:
