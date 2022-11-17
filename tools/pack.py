@@ -137,13 +137,17 @@ def prepare_to_pack_texts():
                             replacement_name = text_names.pop(0)
 
                             # if not scene title - wrap each word after first one with []
-                            if name_to_replace != "scene_title":
+                            if name_to_replace == "scene_title":
+                                replacement_text = replacement_text.replace(' ', '_')
+
+                            else:
                                 replacement_list = replacement_text.split(' ')
                                 if len(replacement_list) > 1:
                                     replacement_text = replacement_list.pop(0) + " ["
                                     replacement_text += "] [".join(replacement_list) + ']'
                                 else:
                                     replacement_text = replacement_text
+
 
                             file_line = file_line.replace(text_to_replace, replacement_text)
                             file_line = file_line.replace(name_to_replace, replacement_name)
