@@ -381,13 +381,12 @@ def sort_resulting_files():
         if not translated_names:
             write_name_here.append("(translate name here)")
         for line in df0.values.tolist():
-            if line[0].count('\t') == 3:
-                name = line[0].split('\t')[1].strip("【】").replace("\\fs　\\fn", " ")
-                if name not in text_names:
-                    text_names.append(name)
-                    translates_to.append("will be translated as:")
-                    if not translated_names:
-                        write_name_here.append("(translate name here)")
+            name = line[0].split('\t')[1].strip("【】").replace("\\fs　\\fn", " ")
+            if name not in text_names:
+                text_names.append(name)
+                translates_to.append("will be translated as:")
+                if not translated_names:
+                    write_name_here.append("(translate name here)")
         df = DataFrame({"Names": text_names, "will be shown as": translates_to, "New names:": write_name_here})
         writer = ExcelWriter(nametable_xlsx)
         df.to_excel(writer, sheet_name='sheetName', index=False, na_rep='NaN')

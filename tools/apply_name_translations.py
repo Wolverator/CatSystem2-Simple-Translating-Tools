@@ -112,7 +112,7 @@ def check_all_tools_intact():
 def translate_name(_name_to_translate:str, _original_names, _translated_names):
     for i in range(len(_original_names)):
         # need to check and replace whole string, not just parts of it, like when using .replace()
-        if _name_to_translate == _original_names[i]:
+        if _name_to_translate == _original_names[i] and not _translated_names[i] == "(translate name here)":
             return _translated_names[i]
     return _name_to_translate
 
