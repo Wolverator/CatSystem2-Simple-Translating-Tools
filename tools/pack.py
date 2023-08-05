@@ -11,11 +11,13 @@ from colorama import init, Fore
 
 init(autoreset=True)
 
+# other variables
 dir_path = os.path.dirname(os.path.realpath(__file__)).replace("tools", "")
 dir_path_package = dir_path + "package\\"
 dir_path_tools = dir_path + "tools\\"
 dir_path_extracted = dir_path + "source game files\\"
 dir_path_extracted_texts = dir_path_extracted + "texts\\"
+dir_path_extracted_translations = dir_path_extracted + "translations\\"
 dir_path_extracted_manually = dir_path_extracted + "for manual processing\\"
 dir_path_extracted_animations = dir_path_extracted_manually + "animations\\"
 dir_path_extracted_images = dir_path_extracted_manually + "images\\"
@@ -23,20 +25,21 @@ dir_path_extracted_movies = dir_path_extracted_manually + "movies\\"
 dir_path_extracted_scripts = dir_path_extracted_manually + "scripts\\"
 dir_path_extracted_sounds = dir_path_extracted_manually + "sounds\\"
 
-dir_path_translations = dir_path + "translate here\\"
-dir_path_translations_clean_texts = dir_path_translations + "clean texts\\"
-dir_path_translations_other_files = dir_path_translations + "your files AS IS\\"
-dir_path_translations_other_files_sounds = dir_path_translations_other_files + "sounds\\"
-dir_path_translations_other_files_movies = dir_path_translations_other_files + "movies\\"
-dir_path_translations_other_files_images = dir_path_translations_other_files + "images\\"
-dir_path_translations_other_files_other = dir_path_translations_other_files + "other\\"
+dir_path_translate_here = dir_path + "translate here\\"
+dir_path_translate_here_clean_texts = dir_path_translate_here + "clean texts\\"
+dir_path_translate_here_other_files = dir_path_translate_here + "your files AS IS\\"
+dir_path_translate_here_other_files_sounds = dir_path_translate_here_other_files + "sounds\\"
+dir_path_translate_here_other_files_movies = dir_path_translate_here_other_files + "movies\\"
+dir_path_translate_here_other_files_images = dir_path_translate_here_other_files + "images\\"
+dir_path_translate_here_other_files_other = dir_path_translate_here_other_files + "other\\"
 
 empty_character_name = "leave_empty"
 WRITE_TRANSLATION_HERE = "(write translation here)"
 
 mc_exe = "mc.exe"
 makeint_exe = "MakeInt.exe"
-temp_tools = [mc_exe, makeint_exe]
+makeintlocale_exe = "MakeInt.exe"
+temp_tools = [mc_exe, makeint_exe, makeintlocale_exe]
 
 messages = ["""CatSystem2 Simple tools (packing tool) by ShereKhanRomeo\n
 HUGE thanks to Trigger-Segfault for explaining and tool links
@@ -104,12 +107,12 @@ def clean_files_from_dir(_dir: str, _filetype: str):
 
 def prepare_to_pack_texts():
     os.chdir(dir_path)
-    for filename in os.listdir(dir_path_translations_clean_texts):
+    for filename in os.listdir(dir_path_translate_here_clean_texts):
         # first - get translations from .xlsx files
-        if os.path.isfile(dir_path_translations_clean_texts + filename) and filename.endswith(".xlsx") and not filename.startswith("~"):
+        if os.path.isfile(dir_path_translate_here_clean_texts + filename) and filename.endswith(".xlsx") and not filename.startswith("~"):
             print(str.format(messages[3], filename))
-            df = pandas.ExcelFile(dir_path_translations_clean_texts + filename) \
-                .parse(pandas.ExcelFile(dir_path_translations_clean_texts + filename).sheet_names[0])
+            df = pandas.ExcelFile(dir_path_translate_here_clean_texts + filename) \
+                .parse(pandas.ExcelFile(dir_path_translate_here_clean_texts + filename).sheet_names[0])
             text_lines = list(df[df.columns[2]]).copy()
             text_names = list(df[df.columns[1]]).copy()
             text_file = filename.replace(".xlsx", ".txt")
@@ -148,7 +151,6 @@ def prepare_to_pack_texts():
                                 else:
                                     replacement_text = replacement_text
 
-
                             file_line = file_line.replace(text_to_replace, replacement_text)
                             file_line = file_line.replace(name_to_replace, replacement_name)
                             # print("(DEBUG)writing line: " + file_line)
@@ -177,10 +179,11 @@ def copy_all_files_from_to(_from, _to):
 def pack_int_archive():
     os.chdir(dir_path)
     shutil.copy(dir_path_tools + makeint_exe, dir_path + makeint_exe)
-    #copy_all_files_from_to(dir_path_translations_other_files_images, dir_path_package)
-    #copy_all_files_from_to(dir_path_translations_other_files_movies, dir_path_package)
-    #copy_all_files_from_to(dir_path_translations_other_files_sounds, dir_path_package)
-    #copy_all_files_from_to(dir_path_translations_other_files_other, dir_path_package)
+    shutil.copy(dir_path_tools + makeintlocale_exe, dir_path + makeintlocale_exe)
+    # copy_all_files_from_to(dir_path_translations_other_files_images, dir_path_package)
+    # copy_all_files_from_to(dir_path_translations_other_files_movies, dir_path_package)
+    # copy_all_files_from_to(dir_path_translations_other_files_sounds, dir_path_package)
+    # copy_all_files_from_to(dir_path_translations_other_files_other, dir_path_package)
     # todo add archive number
     archive_number = input(messages[8]) or "13"
     if not archive_number.isdigit():
@@ -192,13 +195,14 @@ def pack_int_archive():
     print(str.format("Packing archive {0}...", archive_name))
     subprocess.call(str.format("makeint {0} \"{1}\" \"{2}\" \"{3}\" \"{4}\" \"{5}\" \"{6}\"",
                                archive_name,
-                               dir_path_translations_other_files_movies + '*',
-                               dir_path_translations_other_files_images + '*',
-                               dir_path_translations_other_files_sounds + '*',
-                               dir_path_translations_other_files_other + '*',
-                               dir_path_package + '*',
-                               dir_path_translations + 'nametable.csv'))
+                               dir_path_translate_here + 'nametable.csv',
+                               dir_path_package + '*', # main text files (.cst)
+                               dir_path_translate_here_other_files_sounds + '*',
+                               dir_path_translate_here_other_files_images + '*',
+                               dir_path_translate_here_other_files_movies + '*',
+                               dir_path_translate_here_other_files_other + '*'))
     delete_file(dir_path + makeint_exe)
+    delete_file(dir_path + makeintlocale_exe)
     clean_files_from_dir(dir_path_package, ".cst")
     clean_files_from_dir(dir_path_package, ".hg3")
     clean_files_from_dir(dir_path_package, ".mpg")

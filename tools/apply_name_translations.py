@@ -43,6 +43,7 @@ dir_path = os.path.dirname(os.path.realpath(__file__)).replace("tools", "")
 dir_path_tools = dir_path + "tools\\"
 dir_path_extracted = dir_path + "source game files\\"
 dir_path_extracted_texts = dir_path_extracted + "texts\\"
+dir_path_extracted_translations = dir_path_extracted + "translations\\"
 dir_path_extracted_manually = dir_path_extracted + "for manual processing\\"
 dir_path_extracted_animations = dir_path_extracted_manually + "animations\\"
 dir_path_extracted_images = dir_path_extracted_manually + "images\\"
@@ -50,13 +51,13 @@ dir_path_extracted_movies = dir_path_extracted_manually + "movies\\"
 dir_path_extracted_scripts = dir_path_extracted_manually + "scripts\\"
 dir_path_extracted_sounds = dir_path_extracted_manually + "sounds\\"
 
-dir_path_translations = dir_path + "translate here\\"
-dir_path_translations_clean_texts = dir_path_translations + "clean texts\\"
-dir_path_translations_other_files = dir_path_translations + "your files AS IS\\"
-dir_path_translations_other_files_sounds = dir_path_translations_other_files + "sounds\\"
-dir_path_translations_other_files_movies = dir_path_translations_other_files + "movies\\"
-dir_path_translations_other_files_images = dir_path_translations_other_files + "images\\"
-dir_path_translations_other_files_other = dir_path_translations_other_files + "other\\"
+dir_path_translate_here = dir_path + "translate here\\"
+dir_path_translate_here_clean_texts = dir_path_translate_here + "clean texts\\"
+dir_path_translate_here_other_files = dir_path_translate_here + "your files AS IS\\"
+dir_path_translate_here_other_files_sounds = dir_path_translate_here_other_files + "sounds\\"
+dir_path_translate_here_other_files_movies = dir_path_translate_here_other_files + "movies\\"
+dir_path_translate_here_other_files_images = dir_path_translate_here_other_files + "images\\"
+dir_path_translate_here_other_files_other = dir_path_translate_here_other_files + "other\\"
 
 TRANSLATION_LINE_PATTERN = "translation for line #{0}"
 ORIGINAL_LINE_PATTERN = "original line #{0}"
@@ -103,7 +104,7 @@ def check_all_tools_intact():
         print(str.format(messages[7], missing_files))
         press_any_key()
         sys.exit(0)
-    nametable_xlsx = dir_path_translations + 'nametable.xlsx'
+    nametable_xlsx = dir_path_translate_here + 'nametable.xlsx'
     if not os.path.exists(nametable_xlsx) or not os.path.isfile(nametable_xlsx):
         print(messages[8])  # nametable not found
         press_any_key()
@@ -120,7 +121,7 @@ def translate_name(_name_to_translate:str, _original_names, _translated_names):
 def apply_names_translations_nametable():
     global xlsx_original_names, xlsx_translated_names
     nametable_csv = dir_path_extracted + 'nametable.csv'
-    nametable_xlsx = dir_path_translations + 'nametable.xlsx'
+    nametable_xlsx = dir_path_translate_here + 'nametable.xlsx'
     print(str.format(messages[3], 'nametable.xlsx'))
     xlsx_file = pandas.ExcelFile(nametable_xlsx)
     df1 = xlsx_file.parse(xlsx_file.sheet_names[0])
@@ -155,13 +156,13 @@ def apply_names_translations_nametable():
         array[1] = translated_name
         line_array[0] = "\t".join(array)
 
-    df0.to_csv(dir_path_translations + 'nametable.csv', encoding='ShiftJIS', index=False)
+    df0.to_csv(dir_path_translate_here + 'nametable.csv', encoding='ShiftJIS', index=False)
 
 def apply_names_translations_texts():
     global xlsx_original_names, xlsx_translated_names
 
-    for filename in os.listdir(dir_path_translations_clean_texts):
-        file_xlsx = dir_path_translations_clean_texts + filename
+    for filename in os.listdir(dir_path_translate_here_clean_texts):
+        file_xlsx = dir_path_translate_here_clean_texts + filename
         if os.path.isfile(file_xlsx) and file_xlsx.endswith(".xlsx"):
             print(str.format(messages[3], filename))
             xlsx_file = pandas.ExcelFile(file_xlsx)
@@ -182,7 +183,7 @@ def apply_names_translations_texts():
                 column_length = max(df[column].astype(str).map(len).max(), len(column))
                 col_idx = df.columns.get_loc(column)
                 writer.sheets['sheetName'].set_column(col_idx, col_idx, column_length)
-            writer.save()
+            writer.close()
 
 
 # core logic

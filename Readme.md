@@ -1,6 +1,8 @@
 # CatSystem2 Simple Translating Tools
 Single-click tools to "extract text right into editable state" and "pack all it back". Or as simple as I am able to make it :D (WIP)
 
+In case of troubles you also can contact me (faster) at Discord: `sherekhanromeo`
+
 ####  Changelog v0.7:
 + Added logic to process `nametable.csv` and translate it, as I've found out that it is required to make some in-game functions work.
 + Now launching `1) unpack.bat` more than once won't remove any translation in the according cells in `.xlsx` files that you've already filled in.
