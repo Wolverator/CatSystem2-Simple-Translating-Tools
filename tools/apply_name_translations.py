@@ -26,14 +26,14 @@ Edit names only in 'nametable.xlsx', then run this tool again.
 
 {1}If you sure you want to apply names translations, press Enter...""",
 
-    "Copying files into 'extracted' folder and unpacking 'int'-archives may take up to 1 minute per file...",
-    "Copying {0}...",
-    "Processing {0}...",
-    "Removing temporary files...",
-    "Sorting extracted files...",
-    Fore.GREEN + "Done! Program will be closed now.",
-    Fore.YELLOW + "Following tools are missing: {0}\nDownload or unpack archive again.",
-    Fore.YELLOW + """File 'nametable.csv' was not found after extracting specified archives!
+            "Copying files into 'extracted' folder and unpacking 'int'-archives may take up to 1 minute per file...",
+            "Copying {0}...",
+            "Processing {0}...",
+            "Removing temporary files...",
+            "Sorting extracted files...",
+            Fore.GREEN + "Done! Program will be closed now.",
+            Fore.YELLOW + "Following tools are missing: {0}\nDownload or unpack archive again.",
+            Fore.YELLOW + """File 'nametable.csv' was not found after extracting specified archives!
     To find archive with that file you can use 'GARbro' Visual Novels resource browser made by 'morkt' from GitHub.
     Please, find archive with 'nametable.csv' since it is mandatory for ingame features and next translation steps.
     Press Enter to finish the program."""]
@@ -64,8 +64,8 @@ ORIGINAL_LINE_PATTERN = "original line #{0}"
 TEXT_LINE_END1 = "\\fn\r\n"
 TEXT_LINE_END2 = "\\@\r\n"
 SCENE_LINESTART1 = "\tscene "
-SCENE_LINESTART2 = "\tstr 3 " # for Grisaia1 steam version
-SCENE_LINESTART3 = "\tstr 155 " # for Grisaia1 unrated version
+SCENE_LINESTART2 = "\tstr 3 "  # for Grisaia1 steam version
+SCENE_LINESTART3 = "\tstr 155 "  # for Grisaia1 unrated version
 WRITE_TRANSLATION_HERE = "(write translation here)"
 CHOICE_OPTION = "choice_option"
 SCENE_TITLE = "scene_title"
@@ -91,9 +91,9 @@ xlsx_original_names = []
 xlsx_translated_names = []
 
 
-# functions
 def press_any_key():
     skip = input()
+
 
 def check_all_tools_intact():
     missing_files = ""
@@ -110,7 +110,8 @@ def check_all_tools_intact():
         press_any_key()
         sys.exit(0)
 
-def translate_name(_name_to_translate:str, _original_names, _translated_names):
+
+def translate_name(_name_to_translate: str, _original_names, _translated_names):
     for i in range(len(_original_names)):
         # need to check and replace whole string, not just parts of it, like when using .replace()
         if _name_to_translate == _original_names[i] and not _translated_names[i] == "(translate name here)":
@@ -131,32 +132,35 @@ def apply_names_translations_nametable():
     df0 = pandas.read_csv(nametable_csv, encoding='ShiftJIS')
     column0_array = df0.columns[0].split('\t')
     jp_brackets0 = False
-    if "【" in column0_array[1] or "】" in column0_array[1]:
-        jp_brackets0 = True
-        name0 = column0_array[1].strip("【】").replace("\\fs　\\fn", " ")
-    else:
-        name0 = column0_array[1].replace("\\fs　\\fn", " ")
-    translated_name0 = translate_name(name0, xlsx_original_names, xlsx_translated_names).replace(" ", "\\fs　\\fn").replace('ë', 'ё')
-    if jp_brackets0:
-        translated_name0 = "【" + translated_name0 + "】"
-    column0_array[1] = translated_name0
+    if len(column0_array) > 1:
+        if "【" in column0_array[1] or "】" in column0_array[1]:
+            jp_brackets0 = True
+            name0 = column0_array[1].strip("【】").replace("\\fs　\\fn", " ")
+        else:
+            name0 = column0_array[1].replace("\\fs　\\fn", " ")
+        translated_name0 = translate_name(name0, xlsx_original_names, xlsx_translated_names).replace(" ", "\\fs　\\fn").replace('ë', 'ё')
+        if jp_brackets0:
+            translated_name0 = "【" + translated_name0 + "】"
+        column0_array[1] = translated_name0
     df0.rename(columns={df0.columns[0]: "\t".join(column0_array)}, inplace=True)
 
     for line_array in df0.to_numpy():
         array = line_array[0].split('\t')
         jp_brackets = False
-        if "【" in array[1] or "】" in array[1]:
-            jp_brackets = True
-            name = array[1].strip("【】").replace("\\fs　\\fn", " ")
-        else:
-            name = array[1].replace("\\fs　\\fn", " ")
-        translated_name = translate_name(name, xlsx_original_names, xlsx_translated_names).replace(" ", "\\fs　\\fn").replace('ë', 'ё')
-        if jp_brackets:
-            translated_name = "【" + translated_name + "】"
-        array[1] = translated_name
-        line_array[0] = "\t".join(array)
+        if len(array) > 1:
+            if "【" in array[1] or "】" in array[1]:
+                jp_brackets = True
+                name = array[1].strip("【】").replace("\\fs　\\fn", " ")
+            else:
+                name = array[1].replace("\\fs　\\fn", " ")
+            translated_name = translate_name(name, xlsx_original_names, xlsx_translated_names).replace(" ", "\\fs　\\fn").replace('ë', 'ё')
+            if jp_brackets:
+                translated_name = "【" + translated_name + "】"
+            array[1] = translated_name
+            line_array[0] = "\t".join(array)
 
     df0.to_csv(dir_path_translate_here + 'nametable.csv', encoding='ShiftJIS', index=False)
+
 
 def apply_names_translations_texts():
     global xlsx_original_names, xlsx_translated_names

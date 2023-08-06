@@ -1,13 +1,10 @@
-import codecs
-import os
-import shutil
-import sys
-import traceback
-
-import pandas
+from codecs import open as copen
+from os import path, mkdir, chmod, rename, chdir, listdir, remove, scandir, rmdir
+from shutil import copy, move
+from traceback import format_exception
 from colorama import init, Fore
 from subprocess import call
-from pandas import DataFrame, ExcelWriter
+from pandas import DataFrame, ExcelWriter, ExcelFile, read_csv
 
 init(autoreset=True)
 
@@ -49,7 +46,8 @@ After copying all files into this folder press Enter...""",
     Press Enter to finish the program."""]
 
 # other variables
-dir_path = os.path.dirname(os.path.realpath(__file__)).replace("tools", "")
+dir_path = path.dirname(path.realpath(__file__)).replace("tools", "")
+print("Path: " + dir_path)
 dir_path_tools = dir_path + "tools\\"
 dir_path_extracted = dir_path + "source game files\\"
 dir_path_extracted_texts = dir_path_extracted + "texts\\"
@@ -81,21 +79,7 @@ CHOICE_OPTION = "choice_option"
 SCENE_TITLE = "scene_title"
 EMPTY_CHARACTER_NAME = "leave_empty"
 
-game_main = None
-if os.path.exists(dir_path + "\\cs2.exe"):
-    game_main = "cs2.exe"
-if os.path.exists(dir_path + "\\amakanoPlus.exe"):
-    game_main = "amakanoPlus.exe"
-if os.path.exists(dir_path + "\\grisaia.exe"):
-    game_main = "grisaia.exe"
-if os.path.exists(dir_path + "\\Grisaia2.exe"):
-    game_main = "Grisaia2.exe"
-if os.path.exists(dir_path + "\\Grisaia3.exe"):
-    game_main = "Grisaia3.exe"
-
-if game_main is None:
-    print("Main game executable is not found!\n"
-          "If it's '[game name].exe' - please rename it into 'cs2.exe'")
+game_main = "None"
 hgx2bmp_exe = "hgx2bmp.exe"
 zlib1_dll = "zlib1.dll"
 exzt_exe = "exzt.exe"
@@ -106,8 +90,6 @@ cs2_decompile_exe = "cs2_decompile.exe"
 temp_archives = ["scene.int", "config.int", "update00.int", "update01.int", "update02.int", "update03.int",
                  "update04.int", "update05.int", "update06.int", "update07.int", "update08.int", "update09.int",
                  "update10.int", "update11.int", "update12.int", "update13.int", "update14.int", "update15.int"]
-temp_files = temp_archives.copy()
-temp_files.append(game_main)
 temp_tools = [hgx2bmp_exe, zlib1_dll, exzt_exe, exkifint_v3_exe, cs2_decompile_exe]
 optional_voice_packages = []
 
@@ -118,8 +100,8 @@ def press_any_key():
 
 
 def create_if_not_exists(_path_to_file_or_dir: str):
-    if not os.path.exists(_path_to_file_or_dir):
-        os.mkdir(_path_to_file_or_dir)
+    if not path.exists(_path_to_file_or_dir):
+        mkdir(_path_to_file_or_dir)
 
 
 def prepare_for_work():
@@ -147,86 +129,115 @@ def prepare_for_work():
 
 
 def check_all_tools_intact():
+    global game_main, temp_tools
+    dir_path_cs2_bin = dir_path + "\\cs2.bin"
+    if path.exists(dir_path_cs2_bin):
+        chmod(dir_path_cs2_bin, 0o777)
+        chmod(dir_path + "\\cs2.exe", 0o777)
+        rename(dir_path + "\\cs2.exe", dir_path + "\\сs2.bin")  # rename into cs2.bin where C is russian XD
+        rename(dir_path_cs2_bin, dir_path + "\\cs2.exe")
+
+    if path.exists(dir_path + "\\cs2.exe"):
+        game_main = "cs2.exe"
+    if path.exists(dir_path + "\\amakanoPlus.exe"):
+        game_main = "amakanoPlus.exe"
+    if path.exists(dir_path + "\\grisaia.exe"):
+        game_main = "grisaia.exe"
+    if path.exists(dir_path + "\\Grisaia2.exe"):
+        game_main = "Grisaia2.exe"
+    if path.exists(dir_path + "\\Grisaia3.exe"):
+        game_main = "Grisaia3.exe"
+
+    if game_main == "None":
+        print("Main game executable is not found!\n"
+              "If it's '[game name].exe' - please rename it into 'cs2.exe'"
+              "Unpacker will be closed now...")
+        exit(0)
+    else:
+        print("Found main game executable: " + game_main)
+
     missing_files = ""
     for tool in temp_tools:
-        if not os.path.exists(dir_path_tools + tool):
+        if not path.exists(dir_path_tools + tool):
             missing_files += tool + " "
     if len(missing_files) > 0:
         print(str.format(messages[7], missing_files))
         press_any_key()
-        sys.exit(0)
+        exit(0)
+    temp_tools.append(game_main)
 
 
-def copy_files_into_extract_folder():
+def copy_files_into_extract_folder_and_extract():
     global game_main
-    print(messages[1])
-    dir_path_cs2_bin = dir_path + "\\cs2.bin"
-    # TODO make unpacker check for correct file with VCODEs not to make user rename files
-    if os.path.exists(dir_path_cs2_bin):
-        os.chmod(dir_path_cs2_bin, 0o777)
-        os.rename(dir_path_cs2_bin, dir_path + "\\cs2.exe")
-
-    for file in temp_files:
-        if os.path.exists(dir_path + "\\" + file):
+    copy(dir_path + "\\" + game_main, dir_path_extracted + game_main)
+    copy(dir_path_tools + exkifint_v3_exe, dir_path_extracted + exkifint_v3_exe)
+    for file in temp_archives:
+        if path.exists(dir_path + "\\" + file):
             print(str.format(messages[2], file))
-            shutil.copy(dir_path + "\\" + file, dir_path_extracted + file)
+            copy(dir_path + "\\" + file, dir_path_extracted + file)
+    print(messages[1])
+    chdir(dir_path_extracted)
+    # unpacking from int archives
+    if path.exists(dir_path_extracted + exkifint_v3_exe) and path.exists(dir_path_extracted + game_main):
+        for archive in listdir(dir_path_extracted):
+            if archive in temp_archives:
+                print(str.format(messages[3], archive))
+                call([exkifint_v3_exe, archive, game_main], stdin=None, stdout=None, stderr=None, shell=False)
+    clean_files_from_dir(dir_path_extracted, ".int")
+    delete_file(dir_path_extracted + exkifint_v3_exe)
+    chdir(dir_path)
 
 
 def sort_resulting_files():
     print(messages[5])
-    os.chdir(dir_path_extracted)
+    chdir(dir_path_extracted)
 
-    for filename in os.listdir(dir_path_extracted):
+    for filename in listdir(dir_path_extracted):
         file = dir_path_extracted + filename
-        if os.path.isfile(file):
+        if path.isfile(file):
             if file.endswith(".anm"):
-                shutil.move(file, dir_path_extracted_animations + filename)
+                move(file, dir_path_extracted_animations + filename)
             if file.endswith(".hg2") or file.endswith(".hg3") or file.endswith(".bmp") or file.endswith(".jpg"):
-                shutil.move(file, dir_path_extracted_images + filename)
+                move(file, dir_path_extracted_images + filename)
             if file.endswith(".mpg"):
-                shutil.move(file, dir_path_extracted_movies + filename)
-            if file.endswith(".fes") or file.endswith(".kcs") or file.endswith(".dat") or file.endswith(".xml") or file.endswith(".txt"):
-                shutil.move(file, dir_path_extracted_scripts + filename)
+                move(file, dir_path_extracted_movies + filename)
+            if file.endswith(".fes") or file.endswith(".kcs") or file.endswith(".dat") or file.endswith(".xml"):
+                move(file, dir_path_extracted_scripts + filename)
             if file.endswith(".ogg") or file.endswith(".wav"):
-                shutil.move(file, dir_path_extracted_sounds + filename)
-            if file.endswith(".cst"):
-                shutil.move(file, dir_path_extracted_texts + filename)
+                move(file, dir_path_extracted_sounds + filename)
+            if file.endswith(".cst") or file.endswith(".txt"):
+                move(file, dir_path_extracted_texts + filename)
             if file.endswith(".cstl"):
-                shutil.move(file, dir_path_extracted_translations + filename)
+                move(file, dir_path_extracted_translations + filename)
+    chdir(dir_path)
 
+
+def process_nametable():
+    chdir(dir_path_extracted)
     nametable_csv = dir_path_extracted + 'nametable.csv'
     nametable_xlsx = dir_path_translate_here + 'nametable.xlsx'
-    if not os.path.exists(nametable_csv) or not os.path.isfile(nametable_csv):
-        # for pth in os.listdir(dir_path_translate_here):
-        #     if os.path.isdir(dir_path_translate_here + pth):
-        #         with os.scandir(dir_path_translate_here + pth) as it:
-        #             if not any(it):
-        #                 os.rmdir(dir_path_translate_here + pth)
-        # if not os.listdir(dir_path_translate_here[:-1]):
-        #     os.rmdir(dir_path_translate_here[:-1])
-        print("File 'nametable.csv' was not found during unpacking.\n"
+    if not path.exists(nametable_csv) or not path.isfile(nametable_csv):
+        print("\nFile 'nametable.csv' was not found during unpacking.\n"
               "Step '2) apply name translations' will not be functional.\n"
-              "Translate all names in text files manually.")  # messages[8])  # nametable not found
+              "Translate all names in text files manually.\n")
         press_any_key()
-        # sys.exit(0)
     else:
         # if nametable.csv exists
         text_names = []
         translates_to = []
         write_name_here = []
         translated_names = False
-        if os.path.exists(nametable_xlsx) and os.path.isfile(nametable_xlsx):
+        if path.exists(nametable_xlsx) and path.isfile(nametable_xlsx):
             # if it exists - save translations column from it
-            xlsx_file = pandas.ExcelFile(nametable_xlsx, engine='openpyxl')
+            xlsx_file = ExcelFile(nametable_xlsx, engine='openpyxl')
             df1 = xlsx_file.parse(xlsx_file.sheet_names[0])
             write_name_here = list(df1[df1.columns[2]]).copy()
             translated_names = True
         df0 = None
         encodings = ["ShiftJIS", "utf-8"]
-        # TODO вынести в функцию
         for encoding in encodings:
             try:
-                df0 = pandas.read_csv(nametable_csv, encoding=encoding)
+                df0 = read_csv(nametable_csv, encoding=encoding)
             except UnicodeDecodeError:
                 pass
             else:
@@ -260,69 +271,48 @@ def sort_resulting_files():
             print("Can not understand encoding of 'nametable.csv'.\n"
                   "Step '2) apply name translations' will not be functional.\n"
                   "Translate all names in text files manually.")
-    os.chdir(dir_path)
-
-
-def extract_int_archives():
-    os.chdir(dir_path_extracted)
-    shutil.copy(dir_path_tools + exkifint_v3_exe, dir_path_extracted + exkifint_v3_exe)
-    # unpacking from int archives
-    if os.path.exists(dir_path_extracted + exkifint_v3_exe) \
-            and os.path.exists(dir_path_extracted + game_main):
-        for archive in (temp_archives + optional_voice_packages):
-            archive_ini = dir_path_extracted + archive
-            if os.path.exists(archive_ini):
-                print(str.format(messages[3], archive))
-                call([exkifint_v3_exe, archive, game_main], stdin=None, stdout=None, stderr=None, shell=False)
-        # for archive in optional_voice_packages:
-        #     archive_ini = dir_path_extracted + archive
-        #     if os.path.exists(archive_ini):
-        #         print(str.format(messages[3], archive))
-        #         call([exkifint_v3_exe, archive, game_main], stdin=None, stdout=None, stderr=None, shell=False)
-    clean_files_from_dir(dir_path_extracted, ".int")
-    delete_file(dir_path_extracted + exkifint_v3_exe)
-    os.chdir(dir_path)
+    chdir(dir_path)
 
 
 def extract_zt_archives():
-    os.chdir(dir_path_extracted)
-    shutil.copy(dir_path_tools + exzt_exe, dir_path_extracted + exzt_exe)
-    shutil.copy(dir_path_tools + zlib1_dll, dir_path_extracted + zlib1_dll)
+    chdir(dir_path_extracted)
+    copy(dir_path_tools + exzt_exe, dir_path_extracted + exzt_exe)
+    copy(dir_path_tools + zlib1_dll, dir_path_extracted + zlib1_dll)
     # unpacking from int archives
-    if os.path.exists(dir_path_extracted + exzt_exe) \
-            and os.path.exists(dir_path_extracted + zlib1_dll):
-        for archive in os.listdir(dir_path_extracted):
+    if path.exists(dir_path_extracted + exzt_exe) \
+            and path.exists(dir_path_extracted + zlib1_dll):
+        for archive in listdir(dir_path_extracted):
             if archive.endswith(".zt"):
                 archive_ini = dir_path_extracted + archive
-                if os.path.exists(archive_ini):
+                if path.exists(archive_ini):
                     print(str.format(messages[3], archive))
                     call([exzt_exe, archive], stdin=None, stdout=None, stderr=None, shell=False)
     clean_files_from_dir(dir_path_extracted, ".zt")
     delete_file(dir_path_extracted + exzt_exe)
     delete_file(dir_path_extracted + zlib1_dll)
-    os.chdir(dir_path)
+    chdir(dir_path)
 
 
 def unpack_scripts():
-    os.chdir(dir_path_extracted_scripts)
-    shutil.copy(dir_path_tools + cs2_decompile_exe, dir_path_extracted_scripts + cs2_decompile_exe)
-    if os.path.exists(dir_path_extracted_scripts + cs2_decompile_exe):
-        for filename in os.listdir(dir_path_extracted_scripts):
+    chdir(dir_path_extracted_scripts)
+    copy(dir_path_tools + cs2_decompile_exe, dir_path_extracted_scripts + cs2_decompile_exe)
+    if path.exists(dir_path_extracted_scripts + cs2_decompile_exe):
+        for filename in listdir(dir_path_extracted_scripts):
             file = dir_path_extracted_scripts + filename
             if file.endswith(".kcs") or file.endswith(".fes"):
                 print(str.format(messages[3], filename))
                 call([cs2_decompile_exe, filename], stdin=None, stdout=None, stderr=None, shell=False)
     delete_file(dir_path_extracted_scripts + cs2_decompile_exe)
-    os.chdir(dir_path)
+    chdir(dir_path)
 
 
 def unpack_images():
-    os.chdir(dir_path_extracted_images)
+    chdir(dir_path_extracted_images)
     # unpacking .hg2 and .hg3 files to .bmp files
-    shutil.copy(dir_path_tools + hgx2bmp_exe, dir_path_extracted_images + hgx2bmp_exe)
-    shutil.copy(dir_path_tools + zlib1_dll, dir_path_extracted_images + zlib1_dll)
-    if os.path.exists(dir_path_extracted_images + hgx2bmp_exe):
-        for filename in os.listdir(dir_path_extracted_images):
+    copy(dir_path_tools + hgx2bmp_exe, dir_path_extracted_images + hgx2bmp_exe)
+    copy(dir_path_tools + zlib1_dll, dir_path_extracted_images + zlib1_dll)
+    if path.exists(dir_path_extracted_images + hgx2bmp_exe):
+        for filename in listdir(dir_path_extracted_images):
             file = dir_path_extracted_images + filename
             if file.endswith(".hg2") or file.endswith(".hg3"):
                 print(str.format(messages[3], filename))
@@ -331,37 +321,35 @@ def unpack_images():
     clean_files_from_dir(dir_path_extracted_images, ".hg3")
     delete_file(dir_path_extracted_images + hgx2bmp_exe)
     delete_file(dir_path_extracted_images + zlib1_dll)
-    os.chdir(dir_path)
+    chdir(dir_path)
 
 
 def unpack_texts():
-    os.chdir(dir_path_extracted_texts)
+    chdir(dir_path_extracted_texts)
     # unpacking .cst files to .out files
-    shutil.copy(dir_path_tools + cs2_decompile_exe, dir_path_extracted_texts + cs2_decompile_exe)
-    if os.path.exists(dir_path_extracted_texts + cs2_decompile_exe):
-        for filename in os.listdir(dir_path_extracted_texts):
+    copy(dir_path_tools + cs2_decompile_exe, dir_path_extracted_texts + cs2_decompile_exe)
+    if path.exists(dir_path_extracted_texts + cs2_decompile_exe):
+        for filename in listdir(dir_path_extracted_texts):
             file = dir_path_extracted_texts + filename
             if file.endswith(".cst"):
                 print(str.format(messages[3], filename))
                 call([cs2_decompile_exe, filename], stdin=None, stdout=None, stderr=None, shell=False)
-    # clean_files_from_dir(dir_path_extracted_texts, ".cst")
     delete_file(dir_path_extracted_texts + cs2_decompile_exe)
-
     # extracting text lines from .txt files into .xlsx files
     extract_clean_text()
-    os.chdir(dir_path)
+    chdir(dir_path)
 
 
 def extract_clean_text():
-    for filename in os.listdir(dir_path_extracted_texts):
-        if os.path.isfile(filename) and filename.endswith(".txt"):
+    for filename in listdir(dir_path_extracted_texts):
+        if path.isfile(filename) and filename.endswith(".txt"):
             full_filename_txt = dir_path_extracted_texts + filename
             print(str.format(messages[3], filename))
             encodingShiftJIS = "ShiftJIS"
             file_lines = []
             text_lines = []
             try:
-                with codecs.open(full_filename_txt, mode="rb", encoding=encodingShiftJIS) as file:
+                with copen(full_filename_txt, mode="rb", encoding=encodingShiftJIS) as file:
                     file_lines = file.readlines()
                     file.close()
             except UnicodeDecodeError as err:
@@ -372,20 +360,16 @@ def extract_clean_text():
                     if "\\r\\fn" not in line and not line == '\t\\fn\r\n':
                         # text lines we need for translation
                         text_lines.append(line)
-
             column1_ids = []
             column2_names = []
             column3_lines = []
             column3_lines_old = []
-
             file_xlsx = dir_path_translate_here_clean_texts + filename.replace(".txt", ".xlsx")
-
-            if os.path.exists(file_xlsx) and os.path.isfile(file_xlsx):
+            if path.exists(file_xlsx) and path.isfile(file_xlsx):
                 # if it exists - save translations column from it
-                xlsx_file = pandas.ExcelFile(file_xlsx, engine='openpyxl')
+                xlsx_file = ExcelFile(file_xlsx, engine='openpyxl')
                 df0 = xlsx_file.parse(xlsx_file.sheet_names[0])
                 column3_lines_old = list(df0[df0.columns[2]]).copy()
-
             for i in range(len(text_lines)):
                 current_line = text_lines[i]
                 if current_line.endswith(TEXT_LINE_END1) or current_line.endswith(TEXT_LINE_END2):
@@ -397,7 +381,6 @@ def extract_clean_text():
                             character_name = EMPTY_CHARACTER_NAME
                         column2_names.append(character_name)
                         column2_names.append(character_name)
-
                         text_line = text_line_parts[1]
                         # we need to remove "@" if present, but only if it's at the end of the line, not to remove "@" from inside the main text
                         column3_lines.append(text_line.replace(TEXT_LINE_END2, "").replace("\r\n", "").replace("\\fn", ""))
@@ -425,7 +408,6 @@ def extract_clean_text():
                         column3_lines.append(WRITE_TRANSLATION_HERE)
                     column1_ids.append(str.format(ORIGINAL_LINE_PATTERN, i))
                     column1_ids.append(str.format(TRANSLATION_LINE_PATTERN, i))
-
             if len(column1_ids) > 0 and len(column2_names) > 0 and len(column3_lines) > 0:
                 df = DataFrame({"Lines numbers": column1_ids, "Character name": column2_names, "Line text": column3_lines})
                 writer = ExcelWriter(file_xlsx)
@@ -439,51 +421,51 @@ def extract_clean_text():
 
 def remove_temp_files():
     print(messages[4])
-    for file in temp_files:
+    for file in temp_archives:
         delete_file(dir_path_extracted + file)
     for file in temp_tools:
         delete_file(dir_path_extracted + file)
 
 
 def delete_file(path_to_file: str):
-    if os.path.exists(path_to_file):
-        os.chmod(path_to_file, 0o777)
-        os.remove(path_to_file)
+    if path.exists(path_to_file):
+        chmod(path_to_file, 0o777)
+        remove(path_to_file)
 
 
 def remove_empty_folders():
     # also remove empty folders
-    for pth in os.listdir(dir_path_extracted_manually):
-        if os.path.isdir(dir_path_extracted_manually + pth):
-            with os.scandir(dir_path_extracted_manually + pth) as it:
+    for pth in listdir(dir_path_extracted_manually):
+        if path.isdir(dir_path_extracted_manually + pth):
+            with scandir(dir_path_extracted_manually + pth) as it:
                 if not any(it):
-                    os.rmdir(dir_path_extracted_manually + pth)
+                    rmdir(dir_path_extracted_manually + pth)
 
 
 def clean_files_from_dir(_dir: str, _filetype: str):
-    for filename in os.listdir(_dir):
+    for filename in listdir(_dir):
         file = _dir + filename
         if file.endswith(_filetype):
             delete_file(file)
 
-        # core logic
 
+# core logic
+if __name__ == "__main__":
+    try:
+        check_all_tools_intact()
+        print(messages[0])
+        press_any_key()
+        prepare_for_work()
+        copy_files_into_extract_folder_and_extract()
+        sort_resulting_files()
+        process_nametable()
 
-try:
-    check_all_tools_intact()
-    print(messages[0])
-    press_any_key()
-    prepare_for_work()
-    copy_files_into_extract_folder()
-    extract_int_archives()
-    sort_resulting_files()
+        unpack_texts()
 
-    unpack_texts()
-
-except Exception as error:
-    print("ERROR - " + str("".join(traceback.format_exception(type(error), value=error, tb=error.__traceback__))).split(
-        "The above exception was the direct cause of the following")[0])
-finally:
-    remove_temp_files()
-    remove_empty_folders()
-    print(messages[6])  # done
+    except Exception as error:
+        print("ERROR - " + str("".join(format_exception(type(error), value=error, tb=error.__traceback__))).split(
+            "The above exception was the direct cause of the following")[0])
+    finally:
+        remove_temp_files()
+        remove_empty_folders()
+        print(messages[6])  # done

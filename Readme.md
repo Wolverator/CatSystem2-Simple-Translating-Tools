@@ -3,28 +3,18 @@ Single-click tools to "extract text right into editable state" and "pack all it 
 
 In case of troubles you also can contact me (faster) at Discord: `sherekhanromeo`
 
-####  Changelog v0.7:
-+ Added logic to process `nametable.csv` and translate it, as I've found out that it is required to make some in-game functions work.
-+ Now launching `1) unpack.bat` more than once won't remove any translation in the according cells in `.xlsx` files that you've already filled in.
-+ Changed folders structure to improve "user-friendliness" of new tools' logic.
-+ If you're updating from previous version of this tool - make backup copy of your `.xslx` files with translations, then copy them into `translate here/clean texts/` folder.\
-Then you will need to run steps 1 and 2 from `How to use` section again, but it should keep all your translated progress intact, only changing names column.
+### Requirements:
++ Python 3.10+ and its modules:
++ `pip install pandas`
++ `pip install xlsxwriter`
++ `pip install colorama`
 
-As of v0.7 there is only text being automatically extracted to xlsx files prepared for translation and then being packed back.
-Images (`.hg2`), videos (`.mpg`), sounds (`.ogg`) and other files will be in according folders for manual editing if you need them.
+### Changelog v0.7.6:
++ Code optimization and fixes
+
+Next goal: rewrite code for .cstl files support (current translating logic conflicts with those files) and make it into UI.
 
 HUGE thanks to Trigger and his **[TriggersTools.CatSystem2 wiki](https://github.com/trigger-segfault/TriggersTools.CatSystem2)** for gathering all info on CS2 file formats and tools in one place!
-
-### Known problems:
-1) ShiftJIS (game engine encoding) doesn't support use of some specific symbols from some languages:
-   + `Ää, Öö, Üü, ß` from German; 
-   + `Áá, Ââ, Ãã, Àà, Çç, Éé, Êê, Íí, Óó, Ôô, Õõ, Úú` from portuguese; 
-   + `Ññ` from Spanish; 
-   + `Èè, Ëë, Îî, Ïï, Ûû, Ùù, Ÿÿ` from French; etc.
-
-   Possible solution = create and use custom font that shows required unsupported symbols instead of unused symbols (f.e. Cyrillic ones),
-E.g.: you need the game to show word `Färbung` so you type something like `Fьrbung` and font shows `ь` as `ä`. Added it into ToDo list, will try to solve later.
-
 
 ## How to use:
 0) copy `.bat` files and `tools` folder into your game folder
@@ -39,7 +29,7 @@ E.g.: you need the game to show word `Färbung` so you type something like `Fьr
 
 ## Unpacker features:
 1) extracts:
-   + `.int` and `.zt` archives (using `exkifint_v3.exe` by asmodean)
+   + `.int` archives (using `exkifint_v3.exe` by asmodean)
    + `.cst` into `.txt` (using `cs2_decompile.exe` by Trigger)
    + also extracts everything worth translating into `.xlsx` files inside according folder
 2) places files in according folders:
@@ -58,14 +48,25 @@ E.g.: you need the game to show word `Färbung` so you type something like `Fьr
 
 
 ## Packer features:
-1) copies original game files from `source game files/texts` folder and `nametable.csv`, applies translations and packs translated files
+1) copies original game files from `source game files/texts` folder and `nametable.csv`, applies translations to them and packs translated files
 2) takes all files in `translate here/your files AS IS` subfolders and packs them "as is"
 
 ## Tested on games:
-1) **[Grisaia no Kajitsu](https://vndb.org/v5154)** (non-steam, unrated) and (steam, all-ages) =  ✅ success
-2) **[Grisaia no Meikyuu](https://vndb.org/v7723)** (non-steam, unrated) =  ✅ success
-3) **[Grisaia no Rakuen](https://vndb.org/v7724)** (non-steam, unrated) =  ✅ success
+1) **[Amakano+](https://vndb.org/v19810)** (non-steam, unrated) =  ✅ success
+2) **[Grisaia no Kajitsu](https://vndb.org/v5154)** (non-steam, unrated) and (steam, all-ages) =  ✅ success
+3) **[Grisaia no Meikyuu](https://vndb.org/v7723)** (non-steam, unrated) =  ✅ success
+4) **[Grisaia no Rakuen](https://vndb.org/v7724)** (non-steam, unrated) =  ✅ success
+5) **[NekoPara vol.3](https://vndb.org/v19385)** (non-steam, unrated) =  ✅ success
+6) **[The girl who's called the world](https://vndb.org/v26987)** (non-steam, unrated) =  ✅ success (partial, need to use .cstl files, WIP)
 
-## Todo list:
-1) create custom font for specific symbols and include option to use it with automatic symbols swapping.
-   + f.e.: you type `ä`, packer understands it and replaces for "encoded" symbols, while ingame it'll still be shown as `ä`
+
+### Known problems:
+1) ShiftJIS (game engine encoding) doesn't support use of some specific symbols from some languages:
+   + `Ää, Öö, Üü, ß` from German; 
+   + `Áá, Ââ, Ãã, Àà, Çç, Éé, Êê, Íí, Óó, Ôô, Õõ, Úú` from portuguese; 
+   + `Ññ` from Spanish; 
+   + `Èè, Ëë, Îî, Ïï, Ûû, Ùù, Ÿÿ` from French; etc.
+
+   Possible solution = create and use custom font that shows required unsupported symbols instead of unused symbols (f.e. Cyrillic ones),
+E.g.: you need the game to show word `Färbung` so you type something like `Fьrbung` and font shows `ь` as `ä`. Added it into ToDo list, will try to solve later.
+

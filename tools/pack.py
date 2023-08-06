@@ -1,9 +1,9 @@
 import codecs
 import os
 import shutil
-import subprocess
 import sys
 import traceback
+from re import compile, escape, IGNORECASE
 from subprocess import call
 
 import pandas
@@ -37,9 +37,7 @@ empty_character_name = "leave_empty"
 WRITE_TRANSLATION_HERE = "(write translation here)"
 
 mc_exe = "mc.exe"
-makeint_exe = "MakeInt.exe"
-makeintlocale_exe = "MakeInt.exe"
-temp_tools = [mc_exe, makeint_exe, makeintlocale_exe]
+temp_tools = [mc_exe]
 
 messages = ["""CatSystem2 Simple tools (packing tool) by ShereKhanRomeo\n
 HUGE thanks to Trigger-Segfault for explaining and tool links
@@ -90,7 +88,6 @@ def delete_file(path_to_file: str):
 
 
 def remove_empty_folders():
-    # also remove empty folders
     for pth in os.listdir(dir_path):
         if os.path.isdir(dir_path + pth):
             with os.scandir(dir_path + pth) as it:
@@ -153,7 +150,6 @@ def prepare_to_pack_texts():
 
                             file_line = file_line.replace(text_to_replace, replacement_text)
                             file_line = file_line.replace(name_to_replace, replacement_name)
-                            # print("(DEBUG)writing line: " + file_line)
                         result_txt_file.write(file_line)
                         result_txt_file.flush()
             else:
@@ -178,13 +174,6 @@ def copy_all_files_from_to(_from, _to):
 
 def pack_int_archive():
     os.chdir(dir_path)
-    shutil.copy(dir_path_tools + makeint_exe, dir_path + makeint_exe)
-    shutil.copy(dir_path_tools + makeintlocale_exe, dir_path + makeintlocale_exe)
-    # copy_all_files_from_to(dir_path_translations_other_files_images, dir_path_package)
-    # copy_all_files_from_to(dir_path_translations_other_files_movies, dir_path_package)
-    # copy_all_files_from_to(dir_path_translations_other_files_sounds, dir_path_package)
-    # copy_all_files_from_to(dir_path_translations_other_files_other, dir_path_package)
-    # todo add archive number
     archive_number = input(messages[8]) or "13"
     if not archive_number.isdigit():
         print(messages[9])
@@ -193,16 +182,13 @@ def pack_int_archive():
         archive_number = "0" + archive_number
     archive_name = str.format("update{0}.int", archive_number)
     print(str.format("Packing archive {0}...", archive_name))
-    subprocess.call(str.format("makeint {0} \"{1}\" \"{2}\" \"{3}\" \"{4}\" \"{5}\" \"{6}\"",
-                               archive_name,
-                               dir_path_translate_here + 'nametable.csv',
-                               dir_path_package + '*', # main text files (.cst)
-                               dir_path_translate_here_other_files_sounds + '*',
-                               dir_path_translate_here_other_files_images + '*',
-                               dir_path_translate_here_other_files_movies + '*',
-                               dir_path_translate_here_other_files_other + '*'))
-    delete_file(dir_path + makeint_exe)
-    delete_file(dir_path + makeintlocale_exe)
+    makeint(archive_name,
+            [dir_path_translate_here + 'nametable.csv',
+             dir_path_package + '*',  # main text files (.cst)
+             dir_path_translate_here_other_files_sounds + '*',
+             dir_path_translate_here_other_files_images + '*',
+             dir_path_translate_here_other_files_movies + '*',
+             dir_path_translate_here_other_files_other + '*'])
     clean_files_from_dir(dir_path_package, ".cst")
     clean_files_from_dir(dir_path_package, ".hg3")
     clean_files_from_dir(dir_path_package, ".mpg")
@@ -215,19 +201,71 @@ def pack_int_archive():
     remove_empty_folders()
 
 
-# core logic
-try:
-    check_all_tools_intact()
-    # todo add archive number
-    print(messages[0])
-    press_any_key()
-    prepare_to_pack_texts()
-    pack_int_archive()
+def findfiles(wildcards: list) -> list:
+    files = []
+    for path in wildcards:
+        if '*' not in path and '?' not in path:
+            # Just a regular file path
+            files.append(path)
+        else:
+            filedir, name = os.path.split(path)
+            regex = compile(escape(name).replace(r'\*', '.*').replace(r'\?', '.?'), IGNORECASE)
+            for file in os.listdir(filedir or '.'):
+                if regex.search(file):
+                    # Don't join path if filedir is empty
+                    files.append(os.path.join(filedir, file) if filedir else file)
+    return files
 
-except Exception as error:
-    print("ERROR - " + str("".join(traceback.format_exception(type(error),
-                                                              value=error,
-                                                              tb=error.__traceback__))).split(
-        "The above exception was the direct cause of the following")[0])
-finally:
-    print(messages[1])  # done
+
+def makeint(archive: str, wildcards: list):
+    files = findfiles(wildcards)
+    return writeint(archive, files)
+
+
+def writeint(archive: str, files: list):
+    import os.path
+    from struct import Struct
+    KIFHDR = Struct('<4sI')
+    KIFENTRY = Struct('<64sII')
+
+    class Entry:
+        def __init__(self, file: str):
+            self.path = file
+            self.name = os.path.basename(file)
+            self.offset = 0
+            self.length = os.path.getsize(file)
+
+        def pack(self):
+            return KIFENTRY.pack(self.name.encode('cp932'), self.offset, self.length)
+
+    entries = [Entry(file) for file in files]
+    offset = KIFHDR.size + KIFENTRY.size * len(files)
+    for entry in entries:
+        entry.offset = offset
+        offset += entry.length
+    with open(archive, 'wb+') as fw:
+        fw.write(KIFHDR.pack(b'KIF\x00', len(files)))
+        for entry in entries:
+            fw.write(entry.pack())
+        for entry in entries:
+            with open(entry.path, 'rb') as fr:
+                data = fr.read()
+            fw.write(data)
+
+
+# core logic
+if __name__ == "__main__":
+    try:
+        check_all_tools_intact()
+        print(messages[0])
+        press_any_key()
+        prepare_to_pack_texts()
+        pack_int_archive()
+
+    except Exception as error:
+        print("ERROR - " + str("".join(traceback.format_exception(type(error),
+                                                                  value=error,
+                                                                  tb=error.__traceback__))).split(
+            "The above exception was the direct cause of the following")[0])
+    finally:
+        print(messages[1])
