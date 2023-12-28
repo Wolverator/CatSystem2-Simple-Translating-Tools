@@ -1,3 +1,4 @@
+import pandas as pd
 from sys import executable
 from codecs import open as copen
 from os import path, mkdir, chmod, rename, chdir, listdir, remove, scandir, rmdir
@@ -5,7 +6,7 @@ from shutil import copy, move
 from traceback import format_exception
 from colorama import init, Fore
 from subprocess import call, DEVNULL
-from pandas import DataFrame, ExcelWriter, ExcelFile, read_csv
+from pandas import DataFrame, ExcelWriter, read_excel, read_csv
 
 init(autoreset=True)
 
@@ -234,7 +235,7 @@ def process_nametable():
         translated_names = False
         if path.exists(nametable_xlsx) and path.isfile(nametable_xlsx):
             # if it exists - save translations column from it
-            xlsx_file = ExcelFile(nametable_xlsx, engine='openpyxl')
+            xlsx_file = read_excel(nametable_xlsx, engine='openpyxl')
             df1 = xlsx_file.parse(xlsx_file.sheet_names[0])
             write_name_here = list(df1[df1.columns[2]]).copy()
             translated_names = True
@@ -266,11 +267,8 @@ def process_nametable():
                             write_name_here.append("(translate name here)")
             df = DataFrame({"Names": text_names, "will be shown as": translates_to, "New names:": write_name_here})
             writer = ExcelWriter(nametable_xlsx)
+            pd.set_option('display.max_colwidth', None)
             df.to_excel(writer, sheet_name='sheetName', index=False, na_rep='NaN')
-            for column in df:
-                column_length = max(df[column].astype(str).map(len).max(), len(column))
-                col_idx = df.columns.get_loc(column)
-                writer.sheets['sheetName'].set_column(col_idx, col_idx, column_length)
             writer.close()
         else:
             print("Can not understand encoding of 'nametable.csv'.\n"
@@ -371,7 +369,7 @@ def extract_clean_text():
             file_xlsx = dir_path_translate_here_clean_texts + filename.replace(".txt", ".xlsx")
             if path.exists(file_xlsx) and path.isfile(file_xlsx):
                 # if it exists - save translations column from it
-                xlsx_file = ExcelFile(file_xlsx, engine='openpyxl')
+                xlsx_file = read_excel(file_xlsx, engine='openpyxl')
                 df0 = xlsx_file.parse(xlsx_file.sheet_names[0])
                 column3_lines_old = list(df0[df0.columns[2]]).copy()
             for i in range(len(text_lines)):
@@ -415,11 +413,8 @@ def extract_clean_text():
             if len(column1_ids) > 0 and len(column2_names) > 0 and len(column3_lines) > 0:
                 df = DataFrame({"Lines numbers": column1_ids, "Character name": column2_names, "Line text": column3_lines})
                 writer = ExcelWriter(file_xlsx)
+                pd.set_option('display.max_colwidth', None)
                 df.to_excel(writer, sheet_name='sheetName', index=False, na_rep='NaN')
-                for column in df:
-                    column_length = max(df[column].astype(str).map(len).max(), len(column))
-                    col_idx = df.columns.get_loc(column)
-                    writer.sheets['sheetName'].set_column(col_idx, col_idx, column_length)
                 writer.close()
 
 
@@ -494,9 +489,9 @@ try:
     process_nametable()
 
     unpack_texts()
-    unpack_scripts()
-    unpack_images()
     extract_localized_texts()
+    unpack_scripts()
+    #unpack_images()
 
 except Exception as error:
     print("ERROR - " + str("".join(format_exception(type(error), value=error, tb=error.__traceback__))).split(

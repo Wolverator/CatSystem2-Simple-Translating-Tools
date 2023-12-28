@@ -3,8 +3,10 @@ import os
 import shutil
 import sys
 import traceback
+from sys import executable
+from os import path
 from re import compile, escape, IGNORECASE
-from subprocess import call
+from subprocess import call, DEVNULL
 
 import pandas
 from colorama import init, Fore
@@ -12,12 +14,13 @@ from colorama import init, Fore
 init(autoreset=True)
 
 # other variables
-dir_path = os.path.dirname(os.path.realpath(__file__)).replace("tools", "")
-dir_path_package = dir_path + "package\\"
+dir_path = path.dirname(path.realpath(__file__)).replace("tools", "")
+print("Path: " + dir_path)
 dir_path_tools = dir_path + "tools\\"
+dir_path_package = dir_path + "package\\"
 dir_path_extracted = dir_path + "source game files\\"
 dir_path_extracted_texts = dir_path_extracted + "texts\\"
-dir_path_extracted_translations = dir_path_extracted + "translations\\"
+dir_path_extracted_localization_texts = dir_path_extracted + "localization texts\\"
 dir_path_extracted_manually = dir_path_extracted + "for manual processing\\"
 dir_path_extracted_animations = dir_path_extracted_manually + "animations\\"
 dir_path_extracted_images = dir_path_extracted_manually + "images\\"
@@ -27,6 +30,7 @@ dir_path_extracted_sounds = dir_path_extracted_manually + "sounds\\"
 
 dir_path_translate_here = dir_path + "translate here\\"
 dir_path_translate_here_clean_texts = dir_path_translate_here + "clean texts\\"
+dir_path_translate_here_clean_localization_texts = dir_path_translate_here + "clean localization texts\\"
 dir_path_translate_here_other_files = dir_path_translate_here + "your files AS IS\\"
 dir_path_translate_here_other_files_sounds = dir_path_translate_here_other_files + "sounds\\"
 dir_path_translate_here_other_files_movies = dir_path_translate_here_other_files + "movies\\"
@@ -37,7 +41,8 @@ empty_character_name = "leave_empty"
 WRITE_TRANSLATION_HERE = "(write translation here)"
 
 mc_exe = "mc.exe"
-temp_tools = [mc_exe]
+cstl_tool_zip = "cstl_tool.zip"
+temp_tools = [mc_exe, cstl_tool_zip]
 
 messages = ["""CatSystem2 Simple tools (packing tool) by ShereKhanRomeo\n
 HUGE thanks to Trigger-Segfault for explaining and tool links
@@ -102,7 +107,27 @@ def clean_files_from_dir(_dir: str, _filetype: str):
             delete_file(file)
 
 
+def pack_from_ini_to_cstl_files():
+    print("Processing .ini files...")
+    os.chdir(dir_path)
+    for filename in os.listdir(dir_path_translate_here_clean_localization_texts):
+        # write translations from .ini files to .cstl files into `package` folder
+        if os.path.isfile(dir_path_translate_here_clean_localization_texts + filename)\
+                and filename.endswith(".ini")\
+                and not filename.startswith("~"):
+            print(str.format(messages[3], filename))
+            call([
+                executable,
+                dir_path_tools + cstl_tool_zip,
+                "-c", dir_path_translate_here_clean_localization_texts + filename,
+                "-o", dir_path_package + filename.replace(".ini", ".cstl")
+            ], stdin=None, stdout=DEVNULL, stderr=None, shell=False)
+
+    pass
+
+
 def pack_from_xlsx_to_cst_files():
+    print("Processing .xlsx files...")
     os.chdir(dir_path)
     for filename in os.listdir(dir_path_translate_here_clean_texts):
         # first - get translations from .xlsx files
@@ -190,14 +215,17 @@ def pack_int_archive():
         archive_number = "0" + archive_number
     archive_name = str.format("update{0}.int", archive_number)
     print(str.format("Packing archive {0}...", archive_name))
-    makeint(archive_name,
-            [dir_path_translate_here + 'nametable.csv',
-             dir_path_package + '*',  # main text files (.cst)
-             #dir_path_translate_here_other_files_sounds + '*',
+    files = [dir_path_package + '*',  # main text files (.cst and .cstl)
+             dir_path_translate_here_other_files_sounds + '*',
              dir_path_translate_here_other_files_images + '*',
-             #dir_path_translate_here_other_files_movies + '*',
-             dir_path_translate_here_other_files_other + '*'])
+             dir_path_translate_here_other_files_movies + '*',
+             dir_path_translate_here_other_files_other + '*']
+    if os.path.exists(dir_path_translate_here + 'nametable.csv'):
+        files.append(dir_path_translate_here + 'nametable.csv')
+    makeint(archive_name, files)
     clean_files_from_dir(dir_path_package, ".cst")
+    clean_files_from_dir(dir_path_package, ".cstl")
+    clean_files_from_dir(dir_path_package, ".ini")
     clean_files_from_dir(dir_path_package, ".hg3")
     clean_files_from_dir(dir_path_package, ".mpg")
     clean_files_from_dir(dir_path_package, ".ogg")
@@ -268,6 +296,7 @@ if __name__ == "__main__":
         print(messages[0])
         press_any_key()
         pack_from_xlsx_to_cst_files()
+        pack_from_ini_to_cstl_files()
         pack_int_archive()
 
     except Exception as error:
