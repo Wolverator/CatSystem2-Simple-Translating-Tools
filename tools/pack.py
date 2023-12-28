@@ -102,7 +102,7 @@ def clean_files_from_dir(_dir: str, _filetype: str):
             delete_file(file)
 
 
-def prepare_to_pack_texts():
+def pack_from_xlsx_to_cst_files():
     os.chdir(dir_path)
     for filename in os.listdir(dir_path_translate_here_clean_texts):
         # first - get translations from .xlsx files
@@ -131,7 +131,8 @@ def prepare_to_pack_texts():
                                 .replace('…', '...') \
                                 .replace('"', '“') \
                                 .replace('ë', 'ё') \
-                                .replace("'", '`')
+                                .replace("'", '`') \
+                                .replace('—','―')
 
                             name_to_replace = text_names.pop(0)
                             replacement_name = text_names.pop(0)
@@ -150,8 +151,15 @@ def prepare_to_pack_texts():
 
                             file_line = file_line.replace(text_to_replace, replacement_text)
                             file_line = file_line.replace(name_to_replace, replacement_name)
-                        result_txt_file.write(file_line)
-                        result_txt_file.flush()
+                        try:
+                            result_txt_file.write(file_line)
+                            result_txt_file.flush()
+                        except UnicodeEncodeError as uniError:
+                            print(Fore.RED + "A problem occurred while processing line:" + Fore.RESET + file_line)
+                            print(Fore.YELLOW + "Seems like there is a symbol that cannot be encoded into game files encoding.\n"
+                                                "Please, let me know about this error at Git Issues and specify the unicode code of character that caused the problem!\n"
+                                                "It's written below and usually looks like '\\u0000'.")
+                            raise uniError
             else:
                 raise Exception(str.format("ERROR - Missing required file = {0}.\nPlease, restore the file into {1} folder or do unpacking process again!", text_file, dir_path_extracted_texts))
     # then use mc.exe
@@ -185,9 +193,9 @@ def pack_int_archive():
     makeint(archive_name,
             [dir_path_translate_here + 'nametable.csv',
              dir_path_package + '*',  # main text files (.cst)
-             dir_path_translate_here_other_files_sounds + '*',
+             #dir_path_translate_here_other_files_sounds + '*',
              dir_path_translate_here_other_files_images + '*',
-             dir_path_translate_here_other_files_movies + '*',
+             #dir_path_translate_here_other_files_movies + '*',
              dir_path_translate_here_other_files_other + '*'])
     clean_files_from_dir(dir_path_package, ".cst")
     clean_files_from_dir(dir_path_package, ".hg3")
@@ -259,7 +267,7 @@ if __name__ == "__main__":
         check_all_tools_intact()
         print(messages[0])
         press_any_key()
-        prepare_to_pack_texts()
+        pack_from_xlsx_to_cst_files()
         pack_int_archive()
 
     except Exception as error:

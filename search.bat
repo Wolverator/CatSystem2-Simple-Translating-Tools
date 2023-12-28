@@ -1,3 +1,2 @@
-@echo off
-python search.py
-pause
+@python search.py
+@set /p =

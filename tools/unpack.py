@@ -1,9 +1,10 @@
+from sys import executable
 from codecs import open as copen
 from os import path, mkdir, chmod, rename, chdir, listdir, remove, scandir, rmdir
 from shutil import copy, move
 from traceback import format_exception
 from colorama import init, Fore
-from subprocess import call
+from subprocess import call, DEVNULL
 from pandas import DataFrame, ExcelWriter, ExcelFile, read_csv
 
 init(autoreset=True)
@@ -11,9 +12,12 @@ init(autoreset=True)
 messages = ["""CatSystem2 Simple tools (extraction tool) by ShereKhanRomeo\n
 HUGE thanks to Trigger-Segfault for explaining and tool links
 check his wiki here https://github.com/trigger-segfault/TriggersTools.CatSystem2/wiki \n\n
-Following game files are MANDATORY to be copied into folder with this unpacker:\n
-0) cs2.exe      = main file of your game, it's usually 4 to 5 MB (copy here and rename into 'cs2')
+Following game files are MANDATORY to be in the folder with this unpacker:\n
+0) cs2.exe      = main file of your game, it's usually 4 to 7 MB
    or cs2.bin   = if your game's .exe is less than 1MB - copy .bin file instead (it still should be 4 to 5 MB)
+   If your game has one of the following main .exe files, this tool will use it automatically:
+   amakanoPlus.exe, grisaia.exe, Grisaia2.exe, Grisaia3.exe, YukikoiMelt.exe
+   
 1) config.int = needed for 'nametable.csv' in it
 2) scene.int  = contains all story's text scripts\n
 optional files, if game has any of those:
@@ -24,12 +28,8 @@ including files from 'updateXX.int' archives with lesser number, so you better c
 Thus, this unpacker extracts mandatory archives first and then overrides extracted files with ones
 unpacked from 'updateXX' archives.
 
-Current version automatically unpacks and prepares for translation only cst-scripts with texts and 'nametable.csv'.
+Current version automatically unpacks and prepares for translation .cst and cstl-scripts with texts and 'nametable.csv'.
 Other kinds of files to translate game menu, images or videos will be extracted, but not processed automatically.
-
-IMPORTANT! While translating, be sure to check if all scripts of '.cst' files are correct.
-(visible in according '.txt' files)
-Detailed help for .cst commands can be found on GitHub page of this unpacker.
 
 After copying all files into this folder press Enter...""",
 
@@ -51,7 +51,7 @@ print("Path: " + dir_path)
 dir_path_tools = dir_path + "tools\\"
 dir_path_extracted = dir_path + "source game files\\"
 dir_path_extracted_texts = dir_path_extracted + "texts\\"
-dir_path_extracted_translations = dir_path_extracted + "translations\\"
+dir_path_extracted_localization_texts = dir_path_extracted + "localization texts\\"
 dir_path_extracted_manually = dir_path_extracted + "for manual processing\\"
 dir_path_extracted_animations = dir_path_extracted_manually + "animations\\"
 dir_path_extracted_images = dir_path_extracted_manually + "images\\"
@@ -61,6 +61,7 @@ dir_path_extracted_sounds = dir_path_extracted_manually + "sounds\\"
 
 dir_path_translate_here = dir_path + "translate here\\"
 dir_path_translate_here_clean_texts = dir_path_translate_here + "clean texts\\"
+dir_path_translate_here_clean_localization_texts = dir_path_translate_here + "clean localization texts\\"
 dir_path_translate_here_other_files = dir_path_translate_here + "your files AS IS\\"
 dir_path_translate_here_other_files_sounds = dir_path_translate_here_other_files + "sounds\\"
 dir_path_translate_here_other_files_movies = dir_path_translate_here_other_files + "movies\\"
@@ -85,12 +86,13 @@ zlib1_dll = "zlib1.dll"
 exzt_exe = "exzt.exe"
 exkifint_v3_exe = "exkifint_v3.exe"
 cs2_decompile_exe = "cs2_decompile.exe"
+cstl_tool_zip = "cstl_tool.zip"
 
 # i am ignoring kx2.ini archive for now, since i have no idea about .kx2-files it has inside
 temp_archives = ["scene.int", "config.int", "update00.int", "update01.int", "update02.int", "update03.int",
                  "update04.int", "update05.int", "update06.int", "update07.int", "update08.int", "update09.int",
                  "update10.int", "update11.int", "update12.int", "update13.int", "update14.int", "update15.int"]
-temp_tools = [hgx2bmp_exe, zlib1_dll, exzt_exe, exkifint_v3_exe, cs2_decompile_exe]
+temp_tools = [hgx2bmp_exe, zlib1_dll, exzt_exe, exkifint_v3_exe, cs2_decompile_exe, cstl_tool_zip]
 optional_voice_packages = []
 
 
@@ -118,9 +120,10 @@ def prepare_for_work():
     create_if_not_exists(dir_path_extracted_scripts)
     create_if_not_exists(dir_path_extracted_sounds)
     create_if_not_exists(dir_path_extracted_texts)
-    create_if_not_exists(dir_path_extracted_translations)
+    create_if_not_exists(dir_path_extracted_localization_texts)
     create_if_not_exists(dir_path_translate_here)
     create_if_not_exists(dir_path_translate_here_clean_texts)
+    create_if_not_exists(dir_path_translate_here_clean_localization_texts)
     create_if_not_exists(dir_path_translate_here_other_files)
     create_if_not_exists(dir_path_translate_here_other_files_images)
     create_if_not_exists(dir_path_translate_here_other_files_movies)
@@ -147,6 +150,8 @@ def check_all_tools_intact():
         game_main = "Grisaia2.exe"
     if path.exists(dir_path + "\\Grisaia3.exe"):
         game_main = "Grisaia3.exe"
+    if path.exists(dir_path + "\\YukikoiMelt.exe"):
+        game_main = "YukikoiMelt.exe"
 
     if game_main == "None":
         print("Main game executable is not found!\n"
@@ -208,7 +213,7 @@ def sort_resulting_files():
             if file.endswith(".cst") or file.endswith(".txt"):
                 move(file, dir_path_extracted_texts + filename)
             if file.endswith(".cstl"):
-                move(file, dir_path_extracted_translations + filename)
+                move(file, dir_path_extracted_localization_texts + filename)
     chdir(dir_path)
 
 
@@ -299,7 +304,7 @@ def unpack_scripts():
     if path.exists(dir_path_extracted_scripts + cs2_decompile_exe):
         for filename in listdir(dir_path_extracted_scripts):
             file = dir_path_extracted_scripts + filename
-            if file.endswith(".kcs") or file.endswith(".fes"):
+            if file.endswith(".fes"):
                 print(str.format(messages[3], filename))
                 call([cs2_decompile_exe, filename], stdin=None, stdout=None, stderr=None, shell=False)
     delete_file(dir_path_extracted_scripts + cs2_decompile_exe)
@@ -332,7 +337,6 @@ def unpack_texts():
         for filename in listdir(dir_path_extracted_texts):
             file = dir_path_extracted_texts + filename
             if file.endswith(".cst"):
-                print(str.format(messages[3], filename))
                 call([cs2_decompile_exe, filename], stdin=None, stdout=None, stderr=None, shell=False)
     delete_file(dir_path_extracted_texts + cs2_decompile_exe)
     # extracting text lines from .txt files into .xlsx files
@@ -419,6 +423,36 @@ def extract_clean_text():
                 writer.close()
 
 
+def extract_localized_texts():
+    foundLocFiles = False
+
+    # for filename in listdir(dir_path_extracted_texts):
+    #     if filename.endswith(".cst"):
+    #         foundLocFiles = True
+    #         print(str.format(messages[3], filename))
+    #         call([
+    #             executable,
+    #             dir_path_tools + cstl_tool_zip,
+    #             "-b", dir_path_extracted_texts + filename,
+    #             "-t", "cstl",
+    #             "-o", dir_path_extracted_localization_texts + filename.replace(".cst", ".cstl"),
+    #             "--orig-lang", "en"
+    #         ], stdin=None, stdout=DEVNULL, stderr=None, shell=False)
+
+    for filename in listdir(dir_path_extracted_localization_texts):
+        if filename.endswith(".cstl"):
+            foundLocFiles = True
+            print(str.format(messages[3], filename))
+            call([
+                executable,
+                dir_path_tools + cstl_tool_zip,
+                "-d", dir_path_extracted_localization_texts + filename,
+                "-o", dir_path_translate_here_clean_localization_texts + filename.replace(".cstl", ".ini")
+            ], stdin=None, stdout=DEVNULL, stderr=None, shell=False)
+    if foundLocFiles:
+        print(Fore.YELLOW + "\nGame has localization files! Please translate using them and not via Excel tables.")
+
+
 def remove_temp_files():
     print(messages[4])
     for file in temp_archives:
@@ -450,22 +484,24 @@ def clean_files_from_dir(_dir: str, _filetype: str):
 
 
 # core logic
-if __name__ == "__main__":
-    try:
-        check_all_tools_intact()
-        print(messages[0])
-        press_any_key()
-        prepare_for_work()
-        copy_files_into_extract_folder_and_extract()
-        sort_resulting_files()
-        process_nametable()
+try:
+    check_all_tools_intact()
+    print(messages[0])
+    press_any_key()
+    prepare_for_work()
+    copy_files_into_extract_folder_and_extract()
+    sort_resulting_files()
+    process_nametable()
 
-        unpack_texts()
+    unpack_texts()
+    unpack_scripts()
+    unpack_images()
+    extract_localized_texts()
 
-    except Exception as error:
-        print("ERROR - " + str("".join(format_exception(type(error), value=error, tb=error.__traceback__))).split(
-            "The above exception was the direct cause of the following")[0])
-    finally:
-        remove_temp_files()
-        remove_empty_folders()
-        print(messages[6])  # done
+except Exception as error:
+    print("ERROR - " + str("".join(format_exception(type(error), value=error, tb=error.__traceback__))).split(
+        "The above exception was the direct cause of the following")[0])
+finally:
+    remove_temp_files()
+    remove_empty_folders()
+    print(messages[6])  # done
