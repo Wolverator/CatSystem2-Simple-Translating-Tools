@@ -207,10 +207,10 @@ def copy_all_files_from_to(_from, _to):
 
 def pack_int_archive():
     os.chdir(dir_path)
-    archive_number = input(messages[8]) or "13"
+    archive_number = input(messages[8]) or "4"
     if not archive_number.isdigit():
         print(messages[9])
-        archive_number = "13"
+        archive_number = "4"
     if len(archive_number) == 1:
         archive_number = "0" + archive_number
     archive_name = str.format("update{0}.int", archive_number)
