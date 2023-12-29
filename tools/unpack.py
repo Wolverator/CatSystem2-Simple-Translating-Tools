@@ -90,7 +90,7 @@ cs2_decompile_exe = "cs2_decompile.exe"
 cstl_tool_zip = "cstl_tool.zip"
 
 # i am ignoring kx2.ini archive for now, since i have no idea about .kx2-files it has inside
-temp_archives = ["scene.int", "config.int", "update00.int", "update01.int", "update02.int", "update03.int",
+temp_archives = ["scene.int", "fes.int", "config.int", "update00.int", "update01.int", "update02.int", "update03.int",
                  "update04.int", "update05.int", "update06.int", "update07.int", "update08.int", "update09.int",
                  "update10.int", "update11.int", "update12.int", "update13.int", "update14.int", "update15.int"]
 temp_tools = [hgx2bmp_exe, zlib1_dll, exzt_exe, exkifint_v3_exe, cs2_decompile_exe, cstl_tool_zip]
@@ -235,7 +235,7 @@ def process_nametable():
         translated_names = False
         if path.exists(nametable_xlsx) and path.isfile(nametable_xlsx):
             # if it exists - save translations column from it
-            xlsx_file = read_excel(nametable_xlsx, engine='openpyxl')
+            xlsx_file = pd.ExcelFile(nametable_xlsx, engine='openpyxl')
             df1 = xlsx_file.parse(xlsx_file.sheet_names[0])
             write_name_here = list(df1[df1.columns[2]]).copy()
             translated_names = True
@@ -369,7 +369,7 @@ def extract_clean_text():
             file_xlsx = dir_path_translate_here_clean_texts + filename.replace(".txt", ".xlsx")
             if path.exists(file_xlsx) and path.isfile(file_xlsx):
                 # if it exists - save translations column from it
-                xlsx_file = read_excel(file_xlsx, engine='openpyxl')
+                xlsx_file = pd.ExcelFile(file_xlsx, engine='openpyxl')
                 df0 = xlsx_file.parse(xlsx_file.sheet_names[0])
                 column3_lines_old = list(df0[df0.columns[2]]).copy()
             for i in range(len(text_lines)):
