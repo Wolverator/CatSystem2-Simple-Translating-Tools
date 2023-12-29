@@ -10,7 +10,7 @@ In case of troubles you also can contact me (faster) at Discord: `sherekhanromeo
 + `pip install colorama`
 + `pip install openpyxl`
 
-### Changelog v0.8.2:
+### Changelog v0.8.1:
 + Basic stable .cstl files translation support (TODO: automate language-related indexes)
 + Code fixes
 
