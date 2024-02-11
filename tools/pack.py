@@ -178,12 +178,12 @@ def pack_from_xlsx_to_cst_files():
                 # third - write resulting .txt files with translation into `package` folder
                 with codecs.open(dir_path_package + text_file, mode="w", encoding=encoding_write) as result_txt_file:
                     for file_line in file_lines:
-                        if (len(text_lines) > 0) and (text_lines[0] in file_line):
-                            text_to_replace = text_lines.pop(0)
-                            replacement_text = text_lines.pop(0)
+                        if (len(text_lines) > 0) and (str(text_lines[0]) in file_line):
+                            text_to_replace = str(text_lines.pop(0))
+                            replacement_text = str(text_lines.pop(0))
 
-                            name_to_replace = text_names.pop(0)
-                            replacement_name = text_names.pop(0)
+                            name_to_replace = str(text_names.pop(0))
+                            replacement_name = str(text_names.pop(0))
 
                             if (replacement_text == WRITE_TRANSLATION_HERE):
                                 continue
