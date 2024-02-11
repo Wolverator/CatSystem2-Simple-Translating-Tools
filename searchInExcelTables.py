@@ -7,7 +7,7 @@ path = os.path.dirname(os.path.realpath(__file__))
 in_files = ".xlsx" # files of what format are being searched
 file_encoding = "ShiftJIS" #  (RenPy usually uses UTF-8)
 
-phrase_we_look_for = "Мичиру-сама" #case sensitive! (usually)
+phrase_we_look_for = "Казами-сан" #case sensitive! (usually)
 
 
 def scan(path1):

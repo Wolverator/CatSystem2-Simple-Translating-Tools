@@ -40,6 +40,7 @@ dir_path_translate_here_other_files_other = dir_path_translate_here_other_files 
 empty_character_name = "leave_empty"
 WRITE_TRANSLATION_HERE = "(write translation here)"
 
+game_main = None
 mc_exe = "mc.exe"
 cstl_tool_zip = "cstl_tool.zip"
 temp_tools = [mc_exe, cstl_tool_zip]
@@ -60,7 +61,7 @@ Press Enter to start...""",
             "Packing images...",
             "Packing movies...",
             "Packing scripts...",
-            "\nEnter number for resulting archive name (choose from '4' to '99'; leave empty for '13' by default): ",
+            "\nEnter number for resulting archive name (choose from '4' to '99'; leave empty for '04' by default): ",
             Fore.YELLOW + "Your input was incorrect in some way. Using number '13' by default."]
 
 
@@ -75,6 +76,7 @@ def create_if_not_exists(_path_to_file_or_dir: str):
 
 
 def check_all_tools_intact():
+    global game_main
     missing_files = ""
     for tool in temp_tools:
         if not os.path.exists(dir_path_tools + tool):
@@ -84,6 +86,31 @@ def check_all_tools_intact():
         press_any_key()
         sys.exit(0)
     create_if_not_exists(dir_path_package)
+
+    if path.exists(dir_path + "\\cs2.exe"):
+        game_main = "cs2.exe"
+    if path.exists(dir_path + "\\amakanoPlus.exe"):
+        game_main = "amakanoPlus.exe"
+    if path.exists(dir_path + "\\grisaia.exe"):
+        game_main = "grisaia.exe"
+    if path.exists(dir_path + "\\Grisaia2.exe"):
+        game_main = "Grisaia2.exe"
+    if path.exists(dir_path + "\\Grisaia3.exe"):
+        game_main = "Grisaia3.exe"
+    if path.exists(dir_path + "\\YukikoiMelt.exe"):
+        game_main = "YukikoiMelt.exe"
+    if path.exists(dir_path + "\\rinko.exe"):
+        game_main = "rinko.exe"
+    if path.exists(dir_path + "\\ISLAND.exe"):
+        game_main = "ISLAND.exe"
+
+    if game_main == "None":
+        print(Fore.RED + "Main game executable is not found!\n" +
+              Fore.YELLOW + "If it's '[game name].exe' - please rename it into 'cs2.exe'\n"
+              "Unpacker will be closed now...")
+        exit(0)
+    else:
+        print(Fore.GREEN + "Found main game executable: " + game_main)
 
 
 def delete_file(path_to_file: str):
@@ -110,9 +137,10 @@ def clean_files_from_dir(_dir: str, _filetype: str):
 def pack_from_ini_to_cstl_files():
     print("Processing .ini files...")
     os.chdir(dir_path)
-    for filename in os.listdir(dir_path_translate_here_clean_localization_texts):
+    ini_files = os.listdir(dir_path_translate_here_clean_localization_texts)
+    for filename in ini_files:
         # write translations from .ini files to .cstl files into `package` folder
-        if os.path.isfile(dir_path_translate_here_clean_localization_texts + filename)\
+        if len(ini_files) > 0 and os.path.isfile(dir_path_translate_here_clean_localization_texts + filename)\
                 and filename.endswith(".ini")\
                 and not filename.startswith("~"):
             print(str.format(messages[3], filename))
@@ -123,11 +151,9 @@ def pack_from_ini_to_cstl_files():
                 "-o", dir_path_package + filename.replace(".ini", ".cstl")
             ], stdin=None, stdout=DEVNULL, stderr=None, shell=False)
 
-    pass
-
 
 def pack_from_xlsx_to_cst_files():
-    print("Processing .xlsx files...")
+    #print("Processing .xlsx files...")
     os.chdir(dir_path)
     for filename in os.listdir(dir_path_translate_here_clean_texts):
         # first - get translations from .xlsx files
@@ -139,57 +165,66 @@ def pack_from_xlsx_to_cst_files():
             text_names = list(df[df.columns[1]]).copy()
             text_file = filename.replace(".xlsx", ".txt")
 
-            encodingShiftJIS = "ShiftJIS"
-            file_lines = []
+            encoding_write = "ShiftJIS"
+            encoding_read = "ShiftJIS"
+            if game_main == "ISLAND.exe":
+                encoding_read = "ANSI"
             # second - get original texts from .txt files in `extracted\texts\`
             if os.path.exists(dir_path_extracted_texts + text_file):
-                with codecs.open(dir_path_extracted_texts + text_file, mode="r", encoding=encodingShiftJIS) as source_txt_file:
+                #print(Fore.CYAN + str(text_lines))
+                with codecs.open(dir_path_extracted_texts + text_file, mode="r", encoding=encoding_read) as source_txt_file:
                     file_lines = source_txt_file.readlines()
                     source_txt_file.close()
                 # third - write resulting .txt files with translation into `package` folder
-                with codecs.open(dir_path_package + text_file, mode="w", encoding=encodingShiftJIS) as result_txt_file:
+                with codecs.open(dir_path_package + text_file, mode="w", encoding=encoding_write) as result_txt_file:
                     for file_line in file_lines:
-                        if len(text_lines) > 0 and text_lines[0] in file_line and text_lines[1] != WRITE_TRANSLATION_HERE:
+                        if (len(text_lines) > 0) and (text_lines[0] in file_line):
                             text_to_replace = text_lines.pop(0)
-                            replacement_text = text_lines.pop(0) \
-                                .replace('№', '#') \
-                                .replace('…', '...') \
-                                .replace('"', '“') \
-                                .replace('ë', 'ё') \
-                                .replace("'", '`') \
-                                .replace('—','―')
+                            replacement_text = text_lines.pop(0)
 
                             name_to_replace = text_names.pop(0)
                             replacement_name = text_names.pop(0)
 
-                            # if not scene title - wrap each word after first one with []
-                            if name_to_replace == "scene_title":
-                                replacement_text = replacement_text.replace(' ', '_')
-
+                            if (replacement_text == WRITE_TRANSLATION_HERE):
+                                continue
                             else:
-                                replacement_list = replacement_text.split(' ')
-                                if len(replacement_list) > 1:
-                                    replacement_text = replacement_list.pop(0) + " ["
-                                    replacement_text += "] [".join(replacement_list) + ']'
-                                else:
-                                    replacement_text = replacement_text
+                                print(Fore.GREEN + file_line)
+                                replacement_text = replacement_text.replace('№', '#') \
+                                                                    .replace('…', '...') \
+                                                                    .replace('"', '“') \
+                                                                    .replace('ë', 'ё') \
+                                                                    .replace("'", '`') \
+                                                                    .replace('—', '―') \
+                                                                    .replace('«', '"') \
+                                                                    .replace('»', '"')
+                                # if not scene title - wrap each word after first one with []
+                                if name_to_replace == "scene_title":
+                                    replacement_text = replacement_text.replace(' ', '_')
 
-                            file_line = file_line.replace(text_to_replace, replacement_text)
-                            file_line = file_line.replace(name_to_replace, replacement_name)
+                                else:
+                                    replacement_list = replacement_text.split(' ')
+                                    if len(replacement_list) > 1:
+                                        replacement_text = replacement_list.pop(0) + " ["
+                                        replacement_text += "] [".join(replacement_list) + ']'
+                                    else:
+                                        replacement_text = replacement_text
+                                file_line = file_line.replace(text_to_replace, replacement_text)
+                                file_line = file_line.replace(name_to_replace, replacement_name)
+                                print(Fore.GREEN + file_line)
                         try:
                             result_txt_file.write(file_line)
                             result_txt_file.flush()
                         except UnicodeEncodeError as uniError:
-                            print(Fore.RED + "A problem occurred while processing line:" + Fore.RESET + file_line)
+                            print(Fore.RED + "A problem occurred while processing line:|" + Fore.RESET + file_line + Fore.RED + "|")
                             print(Fore.YELLOW + "Seems like there is a symbol that cannot be encoded into game files encoding.\n"
-                                                "Please, let me know about this error at Git Issues and specify the unicode code of character that caused the problem!\n"
-                                                "It's written below and usually looks like '\\u0000'.")
+                                                "Please, let me know about this error at Git Issues and specify the unicode code of character that caused the problem!")
                             raise uniError
             else:
                 raise Exception(str.format("ERROR - Missing required file = {0}.\nPlease, restore the file into {1} folder or do unpacking process again!", text_file, dir_path_extracted_texts))
     # then use mc.exe
     os.chdir(dir_path_package)
     print(messages[4])
+    input()
     shutil.copy(dir_path_tools + mc_exe, dir_path_package + mc_exe)
     call([mc_exe, "*"], stdin=None, stdout=None, stderr=None, shell=False)
     clean_files_from_dir(dir_path_package, ".txt")

@@ -4,7 +4,7 @@ path = "D:/Misc/VNs/Grisaia 1 debug/source game files/texts"
 in_files = ".txt" # files of what format are being searched
 file_encoding = "ShiftJIS" #  (RenPy usually uses UTF-8)
 
-phrase_we_look_for = "sdmic004" #case sensitive! (usually)
+phrase_we_look_for = "%" #case sensitive! (usually)
 
 
 def scan(path1):

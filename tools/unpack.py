@@ -1,4 +1,7 @@
 import pandas as pd
+
+import struct
+import zlib
 from sys import executable
 from codecs import open as copen
 from os import path, mkdir, chmod, rename, chdir, listdir, remove, scandir, rmdir
@@ -6,19 +9,16 @@ from shutil import copy, move
 from traceback import format_exception
 from colorama import init, Fore
 from subprocess import call, DEVNULL
-from pandas import DataFrame, ExcelWriter, read_excel, read_csv
+from pandas import DataFrame, ExcelWriter, read_csv
 
 init(autoreset=True)
 
+game_main = "None"
+
 messages = ["""CatSystem2 Simple tools (extraction tool) by ShereKhanRomeo\n
-HUGE thanks to Trigger-Segfault for explaining and tool links
-check his wiki here https://github.com/trigger-segfault/TriggersTools.CatSystem2/wiki \n\n
+HUGE thanks to Trigger-Segfault for explaining and tool links\n
 Following game files are MANDATORY to be in the folder with this unpacker:\n
-0) cs2.exe      = main file of your game, it's usually 4 to 7 MB
-   or cs2.bin   = if your game's .exe is less than 1MB - copy .bin file instead (it still should be 4 to 5 MB)
-   If your game has one of the following main .exe files, this tool will use it automatically:
-   amakanoPlus.exe, grisaia.exe, Grisaia2.exe, Grisaia3.exe, YukikoiMelt.exe
-   
+0) main game executable   (found successfully)
 1) config.int = needed for 'nametable.csv' in it
 2) scene.int  = contains all story's text scripts\n
 optional files, if game has any of those:
@@ -81,7 +81,6 @@ CHOICE_OPTION = "choice_option"
 SCENE_TITLE = "scene_title"
 EMPTY_CHARACTER_NAME = "leave_empty"
 
-game_main = "None"
 hgx2bmp_exe = "hgx2bmp.exe"
 zlib1_dll = "zlib1.dll"
 exzt_exe = "exzt.exe"
@@ -99,7 +98,7 @@ optional_voice_packages = []
 
 # functions
 def press_any_key():
-    skip = input()
+    input()
 
 
 def create_if_not_exists(_path_to_file_or_dir: str):
@@ -153,14 +152,18 @@ def check_all_tools_intact():
         game_main = "Grisaia3.exe"
     if path.exists(dir_path + "\\YukikoiMelt.exe"):
         game_main = "YukikoiMelt.exe"
+    if path.exists(dir_path + "\\rinko.exe"):
+        game_main = "rinko.exe"
+    if path.exists(dir_path + "\\ISLAND.exe"):
+        game_main = "ISLAND.exe"
 
     if game_main == "None":
-        print("Main game executable is not found!\n"
-              "If it's '[game name].exe' - please rename it into 'cs2.exe'"
+        print(Fore.RED + "Main game executable is not found!\n" +
+              Fore.YELLOW + "If it's '[game name].exe' - please rename it into 'cs2.exe'\n"
               "Unpacker will be closed now...")
         exit(0)
     else:
-        print("Found main game executable: " + game_main)
+        print(Fore.GREEN + "Found main game executable: " + game_main)
 
     missing_files = ""
     for tool in temp_tools:
@@ -250,7 +253,8 @@ def process_nametable():
                 break
 
         if df0 is not None:
-            # we need to process first line of CSV separately, since lib thinks it's "table headers" while it might be not, it might be data right away
+            # we need to process first line of CSV separately,
+            # since lib thinks it's "table headers" while it might be not, it might be data right away
             if '\t' in df0.columns[0]:
                 text_names.append(df0.columns[0].split('\t')[1].replace("\\fs　\\fn", " "))
                 translates_to.append("will be translated as:")
@@ -266,9 +270,12 @@ def process_nametable():
                         if not translated_names:
                             write_name_here.append("(translate name here)")
             df = DataFrame({"Names": text_names, "will be shown as": translates_to, "New names:": write_name_here})
-            writer = ExcelWriter(nametable_xlsx)
+            writer = ExcelWriter(nametable_xlsx, engine='xlsxwriter')
             pd.set_option('display.max_colwidth', None)
             df.to_excel(writer, sheet_name='sheetName', index=False, na_rep='NaN')
+            writer.sheets['sheetName'].set_column(0, 0, 20)
+            writer.sheets['sheetName'].set_column(1, 1, 20)
+            writer.sheets['sheetName'].set_column(2, 2, 20)
             writer.close()
         else:
             print("Can not understand encoding of 'nametable.csv'.\n"
@@ -326,6 +333,21 @@ def unpack_images():
     delete_file(dir_path_extracted_images + zlib1_dll)
     chdir(dir_path)
 
+def excst(f):
+    fs = open(f, 'rb')
+    fs.seek(8)
+    raw_size, ori_size = struct.unpack('II',fs.read(8))
+    raw=fs.read()
+    if len(raw)!=raw_size:
+        raise Exception('size error! ' + str(len(raw)) + " | " + str(raw_size) + " | " + str(ori_size))
+    ori=zlib.decompress(raw)
+    if len(ori)!=ori_size:
+        raise Exception('size error2! ' + str(len(ori)) + " | " + str(ori_size))
+    fs.close()
+    fs1 = open(f.replace('.cst', '.txt'), 'wb')
+    fs1.write(ori)
+    fs1.close()
+
 
 def unpack_texts():
     chdir(dir_path_extracted_texts)
@@ -343,22 +365,38 @@ def unpack_texts():
 
 
 def extract_clean_text():
+    problematic_files = []
+
     for filename in listdir(dir_path_extracted_texts):
         if path.isfile(filename) and filename.endswith(".txt"):
             full_filename_txt = dir_path_extracted_texts + filename
             print(str.format(messages[3], filename))
-            encodingShiftJIS = "ShiftJIS"
+            encoding = "ShiftJIS"
+            if game_main == "ISLAND.exe":
+                encoding = "ANSI"
             file_lines = []
             text_lines = []
             try:
-                with copen(full_filename_txt, mode="rb", encoding=encodingShiftJIS) as file:
+                with copen(full_filename_txt, mode="rb", encoding=encoding) as file:
                     file_lines = file.readlines()
                     file.close()
             except UnicodeDecodeError as err:
+                problematic_files.append(filename)
                 continue
             for line in file_lines[1:]:
-                if line.endswith(TEXT_LINE_END1) or line.endswith(TEXT_LINE_END2) \
-                        or line.startswith(SCENE_LINESTART1) or line.startswith(SCENE_LINESTART2) or line.startswith(SCENE_LINESTART3):
+                if (line.endswith(TEXT_LINE_END1)
+                        or line.endswith(TEXT_LINE_END2)
+                        or ("[" in line
+                            and "]" in line
+                            and not line.startswith("\tbg")
+                            and not line.startswith("\tcg")
+                            and not line.startswith("\teg")
+                            and not line.startswith("\tfg")
+                            and not line.startswith("\tpl")
+                            and not line.startswith("\tpr"))
+                        or line.startswith(SCENE_LINESTART1)
+                        or line.startswith(SCENE_LINESTART2)
+                        or line.startswith(SCENE_LINESTART3)):
                     if "\\r\\fn" not in line and not line == '\t\\fn\r\n':
                         # text lines we need for translation
                         text_lines.append(line)
@@ -374,9 +412,18 @@ def extract_clean_text():
                 column3_lines_old = list(df0[df0.columns[2]]).copy()
             for i in range(len(text_lines)):
                 current_line = text_lines[i]
-                if current_line.endswith(TEXT_LINE_END1) or current_line.endswith(TEXT_LINE_END2):
+                if (current_line.endswith(TEXT_LINE_END1)
+                        or current_line.endswith(TEXT_LINE_END2)
+                        or ("[" in current_line
+                            and "]" in current_line
+                            and not current_line.startswith("\tbg")
+                            and not current_line.startswith("\tcg")
+                            and not current_line.startswith("\teg")
+                            and not current_line.startswith("\tfg")
+                            and not current_line.startswith("\tpl")
+                            and not current_line.startswith("\tpr"))):
                     # if it's usual text line
-                    text_line_parts = text_lines[i].split("\t")
+                    text_line_parts = current_line.split("\t")
                     if len(text_line_parts) == 2:
                         character_name = text_line_parts[0]
                         if len(character_name) == 0:
@@ -384,8 +431,16 @@ def extract_clean_text():
                         column2_names.append(character_name)
                         column2_names.append(character_name)
                         text_line = text_line_parts[1]
-                        # we need to remove "@" if present, but only if it's at the end of the line, not to remove "@" from inside the main text
-                        column3_lines.append(text_line.replace(TEXT_LINE_END2, "").replace("\r\n", "").replace("\\fn", ""))
+                        # we need to remove "@" if present,
+                        # but only if it's at the end of the line, not to remove "@" from inside the main text
+                        column3_lines.append(text_line
+                                             .replace(TEXT_LINE_END2, "")
+                                             .replace("\r\n", "")
+                                             .replace("\\fn", "")
+                                             .replace("\\fl", "")
+                                             .replace("\\fs", "")
+                                             .replace("\\pc", "")
+                                             .replace("\\pl", ""))
                         if len(column3_lines_old) > 1:
                             column3_lines_old.pop(0)
                             column3_lines.append(column3_lines_old.pop(0))
@@ -394,15 +449,23 @@ def extract_clean_text():
                         column1_ids.append(str.format(ORIGINAL_LINE_PATTERN, i))
                         column1_ids.append(str.format(TRANSLATION_LINE_PATTERN, i))
                     else:
-                        raise Exception("\n\n!!ERROR!!\nThere are lines with more that one TAB symbol in 1 line!\nThis is unexpected... "
+                        raise Exception("\n\n!!ERROR!!\n"
+                                        "There are lines with more that one TAB symbol in 1 line!\n"
+                                        "This is unexpected... "
                                         + "Please, contact developer on github with screenshot of this line:\n "
-                                        + str(current_line.encode(encoding=encodingShiftJIS)) + "\n")
+                                        + str(current_line.encode(encoding=encoding)) + "\n")
 
-                elif current_line.startswith(SCENE_LINESTART1) or current_line.startswith(SCENE_LINESTART2) or current_line.startswith(SCENE_LINESTART3):
+                elif (current_line.startswith(SCENE_LINESTART1)
+                      or current_line.startswith(SCENE_LINESTART2)
+                      or current_line.startswith(SCENE_LINESTART3)):
                     # if it's scene title (naming)
                     column2_names.append(SCENE_TITLE)
                     column2_names.append(SCENE_TITLE)
-                    column3_lines.append(current_line.replace(SCENE_LINESTART1, "").replace(SCENE_LINESTART2, "").replace(SCENE_LINESTART3, "").replace("\r\n", ""))
+                    column3_lines.append(current_line
+                                         .replace(SCENE_LINESTART1, "")
+                                         .replace(SCENE_LINESTART2, "")
+                                         .replace(SCENE_LINESTART3, "")
+                                         .replace("\r\n", ""))
                     if len(column3_lines_old) > 1:
                         column3_lines_old.pop(0)
                         column3_lines.append(column3_lines_old.pop(0))
@@ -411,11 +474,17 @@ def extract_clean_text():
                     column1_ids.append(str.format(ORIGINAL_LINE_PATTERN, i))
                     column1_ids.append(str.format(TRANSLATION_LINE_PATTERN, i))
             if len(column1_ids) > 0 and len(column2_names) > 0 and len(column3_lines) > 0:
-                df = DataFrame({"Lines numbers": column1_ids, "Character name": column2_names, "Line text": column3_lines})
-                writer = ExcelWriter(file_xlsx)
-                pd.set_option('display.max_colwidth', None)
+                df = DataFrame({"Lines numbers": column1_ids,
+                                "Character name": column2_names,
+                                "Line text": column3_lines})
+                writer = ExcelWriter(file_xlsx, engine='xlsxwriter')
                 df.to_excel(writer, sheet_name='sheetName', index=False, na_rep='NaN')
+                writer.sheets['sheetName'].set_column(0, 0, 20)
+                writer.sheets['sheetName'].set_column(1, 1, 15)
+                writer.sheets['sheetName'].set_column(2, 2, 110)
                 writer.close()
+    if len(problematic_files) > 0:
+        print(Fore.RED + "There were problems with reading these files:\n" + '\n'.join(problematic_files))
 
 
 def extract_localized_texts():
@@ -464,11 +533,12 @@ def delete_file(path_to_file: str):
 
 def remove_empty_folders():
     # also remove empty folders
-    for pth in listdir(dir_path_extracted_manually):
-        if path.isdir(dir_path_extracted_manually + pth):
-            with scandir(dir_path_extracted_manually + pth) as it:
-                if not any(it):
-                    rmdir(dir_path_extracted_manually + pth)
+    if path.exists(dir_path_extracted_manually):
+        for pth in listdir(dir_path_extracted_manually):
+            if path.isdir(dir_path_extracted_manually + pth):
+                with scandir(dir_path_extracted_manually + pth) as it:
+                    if not any(it):
+                        rmdir(dir_path_extracted_manually + pth)
 
 
 def clean_files_from_dir(_dir: str, _filetype: str):
