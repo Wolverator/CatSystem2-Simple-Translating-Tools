@@ -50,7 +50,8 @@ HUGE thanks to Trigger-Segfault for explaining and tool links
 check his wiki here https://github.com/trigger-segfault/TriggersTools.CatSystem2/wiki \n
 All files from "extracted" folder will be compiled into archive with number of your choice.
 
-Note that if you enter single-digit number 'X' for archive, it will be converted to double-digit number with leading zero: '0X'.
+Note that if you enter single-digit number 'X' for archive, \n
+it will be converted to double-digit number with leading zero: '0X'.
 It is OK and made just for CatSystem2 game engine compatibility.
 
 Press Enter to start...""",
@@ -107,7 +108,7 @@ def check_all_tools_intact():
     if game_main == "None":
         print(Fore.RED + "Main game executable is not found!\n" +
               Fore.YELLOW + "If it's '[game name].exe' - please rename it into 'cs2.exe'\n"
-              "Unpacker will be closed now...")
+                            "Unpacker will be closed now...")
         exit(0)
     else:
         print(Fore.GREEN + "Found main game executable: " + game_main)
@@ -137,30 +138,32 @@ def clean_files_from_dir(_dir: str, _filetype: str):
 def pack_from_ini_to_cstl_files():
     print("Processing .ini files...")
     os.chdir(dir_path)
-    ini_files = os.listdir(dir_path_translate_here_clean_localization_texts)
-    for filename in ini_files:
-        # write translations from .ini files to .cstl files into `package` folder
-        if len(ini_files) > 0 and os.path.isfile(dir_path_translate_here_clean_localization_texts + filename)\
-                and filename.endswith(".ini")\
-                and not filename.startswith("~"):
-            print(str.format(messages[3], filename))
-            call([
-                executable,
-                dir_path_tools + cstl_tool_zip,
-                "-c", dir_path_translate_here_clean_localization_texts + filename,
-                "-o", dir_path_package + filename.replace(".ini", ".cstl")
-            ], stdin=None, stdout=DEVNULL, stderr=None, shell=False)
+    if os.path.exists(dir_path_translate_here_clean_localization_texts):
+        ini_files = os.listdir(dir_path_translate_here_clean_localization_texts)
+        for filename in ini_files:
+            # write translations from .ini files to .cstl files into `package` folder
+            if len(ini_files) > 0 and os.path.isfile(dir_path_translate_here_clean_localization_texts + filename) \
+                    and filename.endswith(".ini") \
+                    and not filename.startswith("~"):
+                print(str.format(messages[3], filename))
+                call([
+                    executable,
+                    dir_path_tools + cstl_tool_zip,
+                    "-c", dir_path_translate_here_clean_localization_texts + filename,
+                    "-o", dir_path_package + filename.replace(".ini", ".cstl")
+                ], stdin=None, stdout=DEVNULL, stderr=None, shell=False)
 
 
 def pack_from_xlsx_to_cst_files():
-    #print("Processing .xlsx files...")
+    # print("Processing .xlsx files...")
     os.chdir(dir_path)
     for filename in os.listdir(dir_path_translate_here_clean_texts):
         # first - get translations from .xlsx files
-        if os.path.isfile(dir_path_translate_here_clean_texts + filename) and filename.endswith(".xlsx") and not filename.startswith("~"):
+        if os.path.isfile(dir_path_translate_here_clean_texts + filename) and filename.endswith(
+                ".xlsx") and not filename.startswith("~"):
             print(str.format(messages[3], filename))
             df = pandas.ExcelFile(dir_path_translate_here_clean_texts + filename) \
-                .parse(pandas.ExcelFile(dir_path_translate_here_clean_texts + filename).sheet_names[0])
+                .parse(pandas.ExcelFile(dir_path_translate_here_clean_texts + filename).sheet_names[0]).fillna('')
             text_lines = list(df[df.columns[2]]).copy()
             text_names = list(df[df.columns[1]]).copy()
             text_file = filename.replace(".xlsx", ".txt")
@@ -171,13 +174,16 @@ def pack_from_xlsx_to_cst_files():
                 encoding_read = "ANSI"
             # second - get original texts from .txt files in `extracted\texts\`
             if os.path.exists(dir_path_extracted_texts + text_file):
-                #print(Fore.CYAN + str(text_lines))
-                with codecs.open(dir_path_extracted_texts + text_file, mode="r", encoding=encoding_read) as source_txt_file:
+                # print(Fore.CYAN + str(text_lines))
+                with codecs.open(dir_path_extracted_texts + text_file, mode="r",
+                                 encoding=encoding_read) as source_txt_file:
                     file_lines = source_txt_file.readlines()
                     source_txt_file.close()
                 # third - write resulting .txt files with translation into `package` folder
                 with codecs.open(dir_path_package + text_file, mode="w", encoding=encoding_write) as result_txt_file:
                     for file_line in file_lines:
+                        if (len(text_lines) > 0) and not isinstance(text_lines[0], str):
+                            print(Fore.CYAN + str(type(text_lines[0])) + ' ||' + str(text_lines[0]))
                         if (len(text_lines) > 0) and (str(text_lines[0]) in file_line):
                             text_to_replace = str(text_lines.pop(0))
                             replacement_text = str(text_lines.pop(0))
@@ -188,15 +194,16 @@ def pack_from_xlsx_to_cst_files():
                             if (replacement_text == WRITE_TRANSLATION_HERE):
                                 continue
                             else:
-                                print(Fore.GREEN + file_line)
+
                                 replacement_text = replacement_text.replace('№', '#') \
-                                                                    .replace('…', '...') \
-                                                                    .replace('"', '“') \
-                                                                    .replace('ë', 'ё') \
-                                                                    .replace("'", '`') \
-                                                                    .replace('—', '―') \
-                                                                    .replace('«', '"') \
-                                                                    .replace('»', '"')
+                                    .replace('…', '...') \
+                                    .replace('"', '“') \
+                                    .replace('ë', 'ё') \
+                                    .replace("'", '`') \
+                                    .replace('—', '―') \
+                                    .replace('«', '"') \
+                                    .replace('»', '"') \
+                                    .replace('～', '~')
                                 # if not scene title - wrap each word after first one with []
                                 if name_to_replace == "scene_title":
                                     replacement_text = replacement_text.replace(' ', '_')
@@ -210,21 +217,23 @@ def pack_from_xlsx_to_cst_files():
                                         replacement_text = replacement_text
                                 file_line = file_line.replace(text_to_replace, replacement_text)
                                 file_line = file_line.replace(name_to_replace, replacement_name)
-                                print(Fore.GREEN + file_line)
                         try:
                             result_txt_file.write(file_line)
                             result_txt_file.flush()
                         except UnicodeEncodeError as uniError:
-                            print(Fore.RED + "A problem occurred while processing line:|" + Fore.RESET + file_line + Fore.RED + "|")
-                            print(Fore.YELLOW + "Seems like there is a symbol that cannot be encoded into game files encoding.\n"
-                                                "Please, let me know about this error at Git Issues and specify the unicode code of character that caused the problem!")
+                            print(
+                                Fore.RED + "A problem occurred while processing line:|" + Fore.RESET + file_line + Fore.RED + "|")
+                            print(
+                                Fore.YELLOW + "Seems like there is a symbol that cannot be encoded into game files encoding.\n"
+                                              "Please, let me know about this error at Git Issues and specify the unicode code of character that caused the problem!")
                             raise uniError
             else:
-                raise Exception(str.format("ERROR - Missing required file = {0}.\nPlease, restore the file into {1} folder or do unpacking process again!", text_file, dir_path_extracted_texts))
+                raise Exception(str.format(
+                    "ERROR - Missing required file = {0}.\nPlease, restore the file into {1} folder or do unpacking process again!",
+                    text_file, dir_path_extracted_texts))
     # then use mc.exe
     os.chdir(dir_path_package)
     print(messages[4])
-    input()
     shutil.copy(dir_path_tools + mc_exe, dir_path_package + mc_exe)
     call([mc_exe, "*"], stdin=None, stdout=None, stderr=None, shell=False)
     clean_files_from_dir(dir_path_package, ".txt")
