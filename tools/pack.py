@@ -153,6 +153,15 @@ def pack_from_ini_to_cstl_files():
                     "-o", dir_path_package + filename.replace(".ini", ".cstl")
                 ], stdin=None, stdout=DEVNULL, stderr=None, shell=False)
 
+def wrap_with_square_brackets(_text_to_wrap:str) -> str:
+    result = ''
+    text_to_wrap_list = _text_to_wrap.split(' ')
+    if len(text_to_wrap_list) > 1:
+        result = '[' + text_to_wrap_list.pop(0) + "] ["
+        result += "] [".join(text_to_wrap_list) + ']'
+    else:
+        result = '[' + _text_to_wrap + ']'
+    return result
 
 def pack_from_xlsx_to_cst_files():
     # print("Processing .xlsx files...")
@@ -171,36 +180,38 @@ def pack_from_xlsx_to_cst_files():
             encoding_write = "ShiftJIS"
             encoding_read = "ShiftJIS"
             if game_main == "ISLAND.exe":
-                encoding_read = "ANSI"
+                encoding_read = "UTF-8"
             # second - get original texts from .txt files in `extracted\texts\`
             if os.path.exists(dir_path_extracted_texts + text_file):
                 # print(Fore.CYAN + str(text_lines))
+                print('0')
                 with codecs.open(dir_path_extracted_texts + text_file, mode="r",
                                  encoding=encoding_read) as source_txt_file:
                     file_lines = source_txt_file.readlines()
                     source_txt_file.close()
+                    print('1')
                 # third - write resulting .txt files with translation into `package` folder
                 with codecs.open(dir_path_package + text_file, mode="w", encoding=encoding_write) as result_txt_file:
+                    print('2')
                     for file_line in file_lines:
                         if (len(text_lines) > 0) and not isinstance(text_lines[0], str):
                             print(Fore.CYAN + str(type(text_lines[0])) + ' ||' + str(text_lines[0]))
-                        if (len(text_lines) > 0) and (str(text_lines[0]) in file_line):
-                            text_to_replace = str(text_lines.pop(0))
+                        if (len(text_lines) > 0) and (wrap_with_square_brackets(str(text_lines[0])) in file_line):
+                            text_to_replace = wrap_with_square_brackets(str(text_lines.pop(0)))
                             replacement_text = str(text_lines.pop(0))
-
                             name_to_replace = str(text_names.pop(0))
                             replacement_name = str(text_names.pop(0))
 
-                            if (replacement_text == WRITE_TRANSLATION_HERE):
-                                continue
+                            if (WRITE_TRANSLATION_HERE in replacement_text):
+                                pass
                             else:
-
                                 replacement_text = replacement_text.replace('№', '#') \
                                     .replace('…', '...') \
                                     .replace('"', '“') \
                                     .replace('ë', 'ё') \
                                     .replace("'", '`') \
                                     .replace('—', '―') \
+                                    .replace('–', '―') \
                                     .replace('«', '"') \
                                     .replace('»', '"') \
                                     .replace('～', '~')
@@ -209,12 +220,10 @@ def pack_from_xlsx_to_cst_files():
                                     replacement_text = replacement_text.replace(' ', '_')
 
                                 else:
-                                    replacement_list = replacement_text.split(' ')
-                                    if len(replacement_list) > 1:
-                                        replacement_text = replacement_list.pop(0) + " ["
-                                        replacement_text += "] [".join(replacement_list) + ']'
-                                    else:
-                                        replacement_text = replacement_text
+                                    replacement_text = wrap_with_square_brackets(replacement_text)
+                                print(text_to_replace)
+                                print(replacement_text)
+                                print('3')
                                 file_line = file_line.replace(text_to_replace, replacement_text)
                                 file_line = file_line.replace(name_to_replace, replacement_name)
                         try:
@@ -236,7 +245,7 @@ def pack_from_xlsx_to_cst_files():
     print(messages[4])
     shutil.copy(dir_path_tools + mc_exe, dir_path_package + mc_exe)
     call([mc_exe, "*"], stdin=None, stdout=None, stderr=None, shell=False)
-    clean_files_from_dir(dir_path_package, ".txt")
+    #clean_files_from_dir(dir_path_package, ".txt")
     delete_file(dir_path_package + mc_exe)
     os.chdir(dir_path)
 

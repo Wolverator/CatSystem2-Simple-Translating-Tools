@@ -261,7 +261,7 @@ def process_nametable():
                 if not translated_names:
                     write_name_here.append("(translate name here)")
             # processing other CSV lines
-            for line in df0.values.tolist():
+            for line in list(df0.values):
                 if '\t' in line[0]:
                     name = line[0].split('\t')[1].strip("【】").replace("\\fs　\\fn", " ")
                     if name not in text_names:
@@ -440,7 +440,9 @@ def extract_clean_text():
                                              .replace("\\fl", "")
                                              .replace("\\fs", "")
                                              .replace("\\pc", "")
-                                             .replace("\\pl", ""))
+                                             .replace("\\pl", "")
+                                             .replace("[", "")
+                                             .replace("]", ""))
                         if len(column3_lines_old) > 1:
                             column3_lines_old.pop(0)
                             column3_lines.append(column3_lines_old.pop(0))

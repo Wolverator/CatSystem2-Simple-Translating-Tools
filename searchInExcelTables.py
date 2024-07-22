@@ -7,7 +7,7 @@ path = os.path.dirname(os.path.realpath(__file__))
 in_files = ".xlsx" # files of what format are being searched
 file_encoding = "ShiftJIS" #  (RenPy usually uses UTF-8)
 
-phrase_we_look_for = "Казами-сан" #case sensitive! (usually)
+phrase_we_look_for = "Aide" #case sensitive! (usually)
 
 
 def scan(path1):
@@ -16,11 +16,11 @@ def scan(path1):
         if os.path.isdir(filepath):
             scan(filepath)
         if os.path.isfile(filepath) and filepath.endswith(in_files) and not f1.startswith("~"):
-            xlsx_file = pandas.ExcelFile(filepath)
+            xlsx_file = pandas.ExcelFile(filepath, engine='openpyxl')
             df = xlsx_file.parse(xlsx_file.sheet_names[0])
-            found = False
-            if 'Line text' in df.keys():
-                for line in df['Line text']:
+            found = False #Line text
+            if 'Character name' in df.keys():
+                for line in df['Character name']:
                     try:
                         if phrase_we_look_for in str(line).replace("[", "").replace("]", ""):
                             found = True
