@@ -153,7 +153,8 @@ def pack_from_ini_to_cstl_files():
                     "-o", dir_path_package + filename.replace(".ini", ".cstl")
                 ], stdin=None, stdout=DEVNULL, stderr=None, shell=False)
 
-def wrap_with_square_brackets(_text_to_wrap:str) -> str:
+
+def wrap_with_square_brackets(_text_to_wrap: str) -> str:
     result = ''
     text_to_wrap_list = _text_to_wrap.split(' ')
     if len(text_to_wrap_list) > 1:
@@ -163,46 +164,41 @@ def wrap_with_square_brackets(_text_to_wrap:str) -> str:
         result = '[' + _text_to_wrap + ']'
     return result
 
+
 def pack_from_xlsx_to_cst_files():
-    # print("Processing .xlsx files...")
+    print("Processing .xlsx files...")
     os.chdir(dir_path)
     for filename in os.listdir(dir_path_translate_here_clean_texts):
         # first - get translations from .xlsx files
         if os.path.isfile(dir_path_translate_here_clean_texts + filename) and filename.endswith(
                 ".xlsx") and not filename.startswith("~"):
-            print(str.format(messages[3], filename))
+            #print(str.format(messages[3], filename))
             df = pandas.ExcelFile(dir_path_translate_here_clean_texts + filename) \
                 .parse(pandas.ExcelFile(dir_path_translate_here_clean_texts + filename).sheet_names[0]).fillna('')
             text_lines = list(df[df.columns[2]]).copy()
             text_names = list(df[df.columns[1]]).copy()
             text_file = filename.replace(".xlsx", ".txt")
 
-            encoding_write = "ShiftJIS"
-            encoding_read = "ShiftJIS"
-            if game_main == "ISLAND.exe":
-                encoding_read = "UTF-8"
+            encoding = "ShiftJIS"
             # second - get original texts from .txt files in `extracted\texts\`
             if os.path.exists(dir_path_extracted_texts + text_file):
-                # print(Fore.CYAN + str(text_lines))
-                print('0')
                 with codecs.open(dir_path_extracted_texts + text_file, mode="r",
-                                 encoding=encoding_read) as source_txt_file:
+                                 encoding=encoding) as source_txt_file:
+                    # TODO: script crashes here while trying to read file with weird symbols - need urgent fix
                     file_lines = source_txt_file.readlines()
                     source_txt_file.close()
-                    print('1')
                 # third - write resulting .txt files with translation into `package` folder
-                with codecs.open(dir_path_package + text_file, mode="w", encoding=encoding_write) as result_txt_file:
-                    print('2')
+                with codecs.open(dir_path_package + text_file, mode="w", encoding=encoding) as result_txt_file:
                     for file_line in file_lines:
-                        if (len(text_lines) > 0) and not isinstance(text_lines[0], str):
-                            print(Fore.CYAN + str(type(text_lines[0])) + ' ||' + str(text_lines[0]))
-                        if (len(text_lines) > 0) and (wrap_with_square_brackets(str(text_lines[0])) in file_line):
-                            text_to_replace = wrap_with_square_brackets(str(text_lines.pop(0)))
+                        #if (len(text_lines) > 0) and not isinstance(text_lines[0], str):
+                            #print(Fore.CYAN + str(type(text_lines[0])) + ' ||' + str(text_lines[0]))
+                        if (len(text_lines) > 0) and (str(text_lines[0]) in file_line):
+                            text_to_replace = str(text_lines.pop(0))
                             replacement_text = str(text_lines.pop(0))
                             name_to_replace = str(text_names.pop(0))
                             replacement_name = str(text_names.pop(0))
 
-                            if (WRITE_TRANSLATION_HERE in replacement_text):
+                            if WRITE_TRANSLATION_HERE in replacement_text:
                                 pass
                             else:
                                 replacement_text = replacement_text.replace('№', '#') \
@@ -218,12 +214,11 @@ def pack_from_xlsx_to_cst_files():
                                 # if not scene title - wrap each word after first one with []
                                 if name_to_replace == "scene_title":
                                     replacement_text = replacement_text.replace(' ', '_')
-
                                 else:
                                     replacement_text = wrap_with_square_brackets(replacement_text)
-                                print(text_to_replace)
-                                print(replacement_text)
-                                print('3')
+                                #print(text_to_replace)
+                                #print(replacement_text)
+                                #print('3')
                                 file_line = file_line.replace(text_to_replace, replacement_text)
                                 file_line = file_line.replace(name_to_replace, replacement_name)
                         try:
@@ -245,7 +240,7 @@ def pack_from_xlsx_to_cst_files():
     print(messages[4])
     shutil.copy(dir_path_tools + mc_exe, dir_path_package + mc_exe)
     call([mc_exe, "*"], stdin=None, stdout=None, stderr=None, shell=False)
-    #clean_files_from_dir(dir_path_package, ".txt")
+    clean_files_from_dir(dir_path_package, ".txt")
     delete_file(dir_path_package + mc_exe)
     os.chdir(dir_path)
 
@@ -292,12 +287,12 @@ def pack_int_archive():
 
 def findfiles(wildcards: list) -> list:
     files = []
-    for path in wildcards:
-        if '*' not in path and '?' not in path:
+    for _path in wildcards:
+        if '*' not in _path and '?' not in _path:
             # Just a regular file path
-            files.append(path)
+            files.append(_path)
         else:
-            filedir, name = os.path.split(path)
+            filedir, name = os.path.split(_path)
             regex = compile(escape(name).replace(r'\*', '.*').replace(r'\?', '.?'), IGNORECASE)
             for file in os.listdir(filedir or '.'):
                 if regex.search(file):
