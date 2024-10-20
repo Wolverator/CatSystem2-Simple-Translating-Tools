@@ -440,9 +440,7 @@ def extract_clean_text():
                                              .replace("\\fl", "")
                                              .replace("\\fs", "")
                                              .replace("\\pc", "")
-                                             .replace("\\pl", "")
-                                             .replace("[", "")
-                                             .replace("]", ""))
+                                             .replace("\\pl", ""))
                         if len(column3_lines_old) > 1:
                             column3_lines_old.pop(0)
                             column3_lines.append(column3_lines_old.pop(0))
